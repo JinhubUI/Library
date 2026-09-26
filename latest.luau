@@ -1,5 +1,4 @@
---22
-
+--24
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
@@ -410,7 +409,7 @@ availableHeight=(self.Tab.Window.Body.AbsoluteSize.Y-HEADER_HEIGHT-24)/scale
 end
 availableHeight=math.max(1,availableHeight)self.Frame.Size=UDim2.new(1,0,0,math.max(1,math.min(naturalHeight,availableHeight)))end
 function HStack:VStack()local index=#self.Columns+1
-local column=create("ScrollingFrame",{Name="VStack"..index,Size=UDim2.new(1/index,-8*(index-1)/index,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollBarImageTransparency=1,VerticalScrollBarInset=Enum.ScrollBarInset.None,ScrollingDirection=Enum.ScrollingDirection.Y,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Active=true,LayoutOrder=index,Parent=self.Frame,})local layout=create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Tab.Window.NewElements and 0 or 2),Parent=column,})table.insert(self.Columns,column)table.insert(self.ColumnLayouts,layout)local count=#self.Columns
+local column=create("ScrollingFrame",{Name="VStack"..index,Size=UDim2.new(1/index,-8*(index-1)/index,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollingDirection=Enum.ScrollingDirection.Y,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Active=true,LayoutOrder=index,Parent=self.Frame,})local layout=create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Tab.Window.NewElements and 0 or 2),Parent=column,})table.insert(self.Columns,column)table.insert(self.ColumnLayouts,layout)local count=#self.Columns
 for _,existing in ipairs(self.Columns)do
 existing.Size=UDim2.new(1/count,-8*(count-1)/count,1,0)end
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()self:_updateHeight()end)self.Tab.List:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()self:_updateHeight()end)self:_updateHeight()return setmetatable({Name=self.Tab.Name,Window=self.Tab.Window,List=column,_order=0,_hstack=self,_sectionOwner=self.SectionOwner,_flatElements=self.FlatElements,_boxBorderElements=self.BoxBorderElements,_compactElements=true,},Tab)end
