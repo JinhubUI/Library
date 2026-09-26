@@ -1,4 +1,4 @@
---7
+--8
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -1330,9 +1330,8 @@ end
 end)end
 if type(opts.Keybind)=="string" then
 opts.Keybind=Enum.KeyCode[opts.Keybind]end
-local desktopSize=opts.Size or UDim2.fromOffset(700,500)local mobileSize=opts.MobileSize or UDim2.fromOffset(550,400)local size=(TOUCH and not opts.FixedSize)and mobileSize or desktopSize
-local keybind=opts.Keybind or Enum.KeyCode.RightControl
-local mobileScale=type(opts.MobileScale)=="number" and opts.MobileScale or 0.65
+local size=opts.Size or UDim2.fromOffset(640,480)local keybind=opts.Keybind or Enum.KeyCode.RightControl
+local mobileScale=type(opts.MobileScale)=="number" and opts.MobileScale or 0.55
 mobileScale=math.clamp(mobileScale,0.35,1)local self=setmetatable({Tabs={},CurrentTab=nil,Open=true,Keybind=keybind,NewElements=opts.NewElements==true,MobileScale=mobileScale,_connections={},_controls={},_elements={},_inputListeners={Began={},Changed={},Ended={},Render={}},_frameSteps={},_destroyed=false,_persistentRegistry=persistentRegistry,_registryName=guiName,},Window)if persistentRegistry then
 persistentRegistry[guiName]={Owner=Library,Window=self}end
 local function dispatch(kind)return function(...)for _,handler in ipairs(self._inputListeners[kind])do
@@ -1423,10 +1422,9 @@ self._toasts={}self.MaxNotifications=opts.MaxNotifications or 4
 self._controlsDirty=true
 table.insert(self._connections,body.DescendantAdded:Connect(function()self._controlsDirty=true
 end))table.insert(self._connections,body.DescendantRemoving:Connect(function()self._controlsDirty=true
-end))self:_enableDrag()local mobileBound=TOUCH and not opts.FixedSize
-self.MaxSize=mobileBound and(opts.MobileMaxSize or Vector2.new(size.X.Offset,size.Y.Offset))or opts.MaxSize
+end))self:_enableDrag()self.MaxSize=opts.MaxSize
 self.KeepOnScreen=opts.KeepOnScreen~=false
-self:_enableResize(mobileBound and(opts.MobileMinSize or Vector2.new(math.min(size.X.Offset,380),math.min(size.Y.Offset,300)))or(opts.MinSize or Vector2.new(480,360)))local saving=opts.ConfigurationSaving
+self:_enableResize(opts.MinSize or Vector2.new(480,360))local saving=opts.ConfigurationSaving
 if type(saving)=="table" and saving.Enabled~=false then
 self.ConfigFolder=saving.FolderName or "JinHubxUI"
 self.ConfigName=saving.FileName or "default"
@@ -1453,7 +1451,10 @@ body.GroupTransparency=1
 shadow.ImageTransparency=1
 self.BodyStroke.Transparency=1
 root.Visible=false
-self:_fitToScreen(true)table.insert(self._connections,gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()self:_fitToScreen()self:_clampToScreen()end))task.defer(function()if not self._destroyed and gui.Parent then
+self:_fitToScreen(true)table.insert(self._connections,gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()self:_fitToScreen()self:_clampToScreen()end))local function refreshInputScale()if not self._destroyed then
+self:_fitToScreen()self:_clampToScreen()end
+end
+pcall(function()table.insert(self._connections,UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(refreshInputScale))end)task.defer(function()if not self._destroyed and gui.Parent then
 self:_fitToScreen(true)self:_clampToScreen()end
 end)if(opts.OpenButton~=nil and opts.OpenButton~=false)or(opts.OpenButton==nil and TOUCH)then
 self:_createOpenButton(type(opts.OpenButton)=="table" and opts.OpenButton or{})end
@@ -1609,15 +1610,16 @@ if viewport.X==0 or viewport.Y==0 then
 return
 end
 local size=self.Root.Size
-local width=math.max(size.X.Offset,1)local height=math.max(size.Y.Offset,1)local renderedSize=self.Root.AbsoluteSize
-local compactViewport=UserInputService.TouchEnabled
+local renderedSize=self.Root.AbsoluteSize
+local currentScale=math.max(self.Scale.Scale,0.001)local width=math.max(size.X.Offset,renderedSize.X/currentScale,1)local height=math.max(size.Y.Offset,renderedSize.Y/currentScale,1)local touchDevice=UserInputService.TouchEnabled
+pcall(function()touchDevice=touchDevice or UserInputService.TouchScreenEnabled
+end)pcall(function()touchDevice=touchDevice or UserInputService.PreferredInput==Enum.PreferredInput.Touch
+end)local compactViewport=touchDevice
 or width>=viewport.X*0.7
 or height>=viewport.Y*0.75
-or renderedSize.X>=viewport.X*0.7
-or renderedSize.Y>=viewport.Y*0.75
 local maxScale=compactViewport and self.MobileScale or 1
 local edgePadding=compactViewport and 36 or 24
-local scale=math.min(maxScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,0.001)if self._introDone and self.Open then
+local scale=math.min(maxScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,compactViewport and 0.35 or 0.45)if self._introDone and self.Open then
 if instant then
 self.Scale.Scale=self._fitScale
 else
