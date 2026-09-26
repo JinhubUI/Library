@@ -1,4 +1,4 @@
---8
+--9
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -1868,11 +1868,47 @@ for _,page in ipairs(pages)do
 local panel=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,LayoutOrder=3,Parent=list,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=panel,})if type(page.Content)=="string" then
 local card=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Theme.Surface2,BorderSizePixel=0,LayoutOrder=1,Parent=panel,})card:SetAttribute("NoDrag",true)corner(card)stroke(card)padding(card,14,14,12,14)label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=page.Content,TextSize=15.5,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,Parent=card,})end
 if type(page.Entries)=="table" then
+local categoryOrder={fix=1,optimization=2,added=3,changed=4,removed=5,security=6,}local function getChangeGroups(changes)local groups={}local first=changes[1]if first~=nil then
+if type(first)~="table" then
+return nil
+end
+for _,group in ipairs(changes)do
+if type(group)=="table" then
+local title=group.Title or group.Name or group.Category
+local items=group.Items or group.Changes or group.Entries
+if type(title)=="string" and type(items)=="table" and #items>0 then
+table.insert(groups,{Title=title,Items=items})end
+end
+end
+else
+local names={}for name,items in pairs(changes)do
+if type(name)=="string" and type(items)=="table" then
+table.insert(names,name)end
+end
+table.sort(names,function(a,b)local aKey,bKey=string.lower(a),string.lower(b)local aOrder,bOrder=categoryOrder[aKey]or math.huge,categoryOrder[bKey]or math.huge
+if aOrder==bOrder then
+return aKey<bKey
+end
+return aOrder<bOrder
+end)for _,name in ipairs(names)do
+local items=changes[name]if #items>0 then
+table.insert(groups,{Title=name,Items=items})end
+end
+end
+return #groups>0 and groups or nil
+end
 for index,entry in ipairs(page.Entries)do
 local card=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Theme.Surface2,BorderSizePixel=0,LayoutOrder=index,Parent=panel,})card:SetAttribute("NoDrag",true)corner(card)stroke(card)padding(card,14,14,12,14)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,4),Parent=card,})local head=create("Frame",{Size=UDim2.new(1,0,0,18),BackgroundTransparency=1,LayoutOrder=1,Parent=card,})label({Size=UDim2.new(1,-70,1,0),Text=entry.Title or entry.Version or "Update",TextSize=15,Parent=head,})if entry.Date or entry.Tag then
 local chip=create("Frame",{AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),Size=UDim2.fromOffset(0,20),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=Theme.Surface,BorderSizePixel=0,Parent=head,})corner(chip,UDim.new(0,5))stroke(chip)padding(chip,8,8)label({Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Text=entry.Tag or entry.Date,TextSize=12,TextColor3=Theme.Muted,TextTruncate=Enum.TextTruncate.None,Parent=chip,})end
 local body=entry.Content or entry.Body
-if type(entry.Changes)=="table" then
+local changeGroups=type(entry.Changes)=="table" and getChangeGroups(entry.Changes)or nil
+if changeGroups then
+body=nil
+local groupsHolder=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=card,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,6),Parent=groupsHolder,})for groupIndex,group in ipairs(changeGroups)do
+local groupFrame=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=groupIndex,Parent=groupsHolder,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,2),Parent=groupFrame,})label({Size=UDim2.new(1,0,0,18),Text="[-] "..group.Title..":",TextSize=14,FontFace=Fonts.Bold,LayoutOrder=1,Parent=groupFrame,})for itemIndex,change in ipairs(group.Items)do
+label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text="•  "..tostring(change),TextSize=14,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,LayoutOrder=itemIndex+1,Parent=groupFrame,})end
+end
+elseif type(entry.Changes)=="table" and #entry.Changes>0 then
 body="• "..table.concat(entry.Changes,"\n• ")end
 if body then
 label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=body,TextSize=15.5,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,LayoutOrder=2,Parent=card,})end
