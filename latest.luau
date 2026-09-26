@@ -1,4 +1,4 @@
---6
+--7
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -1330,7 +1330,8 @@ end
 end)end
 if type(opts.Keybind)=="string" then
 opts.Keybind=Enum.KeyCode[opts.Keybind]end
-local size=opts.Size or UDim2.fromOffset(640,480)local keybind=opts.Keybind or Enum.KeyCode.RightControl
+local desktopSize=opts.Size or UDim2.fromOffset(700,500)local mobileSize=opts.MobileSize or UDim2.fromOffset(550,400)local size=(TOUCH and not opts.FixedSize)and mobileSize or desktopSize
+local keybind=opts.Keybind or Enum.KeyCode.RightControl
 local mobileScale=type(opts.MobileScale)=="number" and opts.MobileScale or 0.65
 mobileScale=math.clamp(mobileScale,0.35,1)local self=setmetatable({Tabs={},CurrentTab=nil,Open=true,Keybind=keybind,NewElements=opts.NewElements==true,MobileScale=mobileScale,_connections={},_controls={},_elements={},_inputListeners={Began={},Changed={},Ended={},Render={}},_frameSteps={},_destroyed=false,_persistentRegistry=persistentRegistry,_registryName=guiName,},Window)if persistentRegistry then
 persistentRegistry[guiName]={Owner=Library,Window=self}end
@@ -1422,9 +1423,10 @@ self._toasts={}self.MaxNotifications=opts.MaxNotifications or 4
 self._controlsDirty=true
 table.insert(self._connections,body.DescendantAdded:Connect(function()self._controlsDirty=true
 end))table.insert(self._connections,body.DescendantRemoving:Connect(function()self._controlsDirty=true
-end))self:_enableDrag()self.MaxSize=opts.MaxSize
+end))self:_enableDrag()local mobileBound=TOUCH and not opts.FixedSize
+self.MaxSize=mobileBound and(opts.MobileMaxSize or Vector2.new(size.X.Offset,size.Y.Offset))or opts.MaxSize
 self.KeepOnScreen=opts.KeepOnScreen~=false
-self:_enableResize(opts.MinSize or Vector2.new(480,360))local saving=opts.ConfigurationSaving
+self:_enableResize(mobileBound and(opts.MobileMinSize or Vector2.new(math.min(size.X.Offset,380),math.min(size.Y.Offset,300)))or(opts.MinSize or Vector2.new(480,360)))local saving=opts.ConfigurationSaving
 if type(saving)=="table" and saving.Enabled~=false then
 self.ConfigFolder=saving.FolderName or "JinHubxUI"
 self.ConfigName=saving.FileName or "default"
