@@ -1,4 +1,4 @@
---19
+--20
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -403,12 +403,7 @@ function Tab:HStack()local frame=create("Frame",{Name="HStack",Size=UDim2.new(1,
 function HStack:_updateHeight()local naturalHeight=0
 for _,layout in ipairs(self.ColumnLayouts)do
 naturalHeight=math.max(naturalHeight,layout.AbsoluteContentSize.Y)end
-local scale=math.max(self.Tab.Window.Scale.Scale,0.001)local availableHeight=self.Tab.List:IsA("ScrollingFrame")and self.Tab.List.AbsoluteWindowSize.Y/scale
-or 0
-if availableHeight<=0 then
-availableHeight=(self.Tab.Window.Body.AbsoluteSize.Y-HEADER_HEIGHT-24)/scale
-end
-availableHeight=math.max(1,availableHeight)self.Frame.Size=UDim2.new(1,0,0,math.max(1,math.min(naturalHeight,availableHeight)))end
+self.Frame.Size=UDim2.new(1,0,0,math.max(1,naturalHeight))end
 function HStack:VStack()local index=#self.Columns+1
 local column=create("ScrollingFrame",{Name="VStack"..index,Size=UDim2.new(1/index,-8*(index-1)/index,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollingDirection=Enum.ScrollingDirection.Y,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Active=true,LayoutOrder=index,Parent=self.Frame,})local layout=create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Tab.Window.NewElements and 0 or 2),Parent=column,})table.insert(self.Columns,column)table.insert(self.ColumnLayouts,layout)local count=#self.Columns
 for _,existing in ipairs(self.Columns)do
@@ -1818,7 +1813,7 @@ local function fadeSlideIn(group,restY)restY=restY or 0
 group.GroupTransparency=1
 group.Position=UDim2.fromOffset(0,restY+14)group.Visible=true
 tween(group,{GroupTransparency=0,Position=UDim2.fromOffset(0,restY)},0.32,Enum.EasingStyle.Quint)end
-local DEFAULT_INFO_ENTRIES={{Title="Welcome to JinHub",Desc="Thank you for using JinHub. This script is actively maintained and will continue to receive updates with new features and bug fixes. Your support means everything!",},{Title="Join Our Discord",Desc="Buy Premium, get the latest updates, report bugs, and connect with other users.",Image="rbxassetid://83278450537116",Buttons={{Title="Copy Invite Link",Icon="link-2",Callback=function(window)local copied=type(setclipboard)=="function" and pcall(setclipboard,"https://discord.gg/XPdhVZTaNv")window:Notify({Title=copied and "Link Copied!" or "Clipboard Unavailable",Content=copied and "Discord invite link has been copied to clipboard." or "Your executor does not support copying to the clipboard.",Duration=4,Icon=copied and "check" or "info",})end,},},},{Title="Version Info",Desc="Version: latest\nGame: Karinderya!\nAuthor: Changhoo\nWebsite: jinhub.my.id/topscript",Image="rbxassetid://76078495178149",},{Title="Found a Bug?",Desc="If you encounter any issues or bugs while using this script, please report them directly on our Discord server. Our team will respond as soon as possible.",Image="rbxassetid://89965059528921",},{Title="Disclaimer",Desc="This script is made for educational purposes only. Use at your own risk. JinHub is not responsible for any consequences resulting from the use of this script.",Image="rbxassetid://140438367956051",},}function Window:_buildHome(opts)local tab=self:Tab({Name=opts.Name or "Home",Desc=opts.Desc,Icon=opts.Icon or "house",})local list=tab.List
+local DEFAULT_INFO_ENTRIES={{Title="Welcome to JinHub",Desc="Thank you for using JinHub. This script is actively maintained and will continue to receive updates with new features and bug fixes. Your support means everything!",},{Title="Join Our Discord",Desc="Buy Premium, get the latest updates, report bugs, and connect with other users.",Image="rbxassetid://83278450537116",Buttons={{Title="Copy Invite Link",Icon="link-2",Callback=function(window)local copied=type(setclipboard)=="function" and pcall(setclipboard,"https://discord.gg/XPdhVZTaNv")window:Notify({Title=copied and "Link Copied!" or "Clipboard Unavailable",Content=copied and "Discord invite link has been copied to clipboard." or "Your executor does not support copying to the clipboard.",Duration=4,Icon=copied and "check" or "info",})end,},},},{Title="Version Info",Desc="Version: latest\nAuthor: Changhoo\nWebsite: jinhub.my.id/topscript",Image="rbxassetid://76078495178149",},{Title="Found a Bug?",Desc="If you encounter any issues or bugs while using this script, please report them directly on our Discord server. Our team will respond as soon as possible.",Image="rbxassetid://89965059528921",},{Title="Disclaimer",Desc="This script is made for educational purposes only. Use at your own risk. JinHub is not responsible for any consequences resulting from the use of this script.",Image="rbxassetid://140438367956051",},}function Window:_buildHome(opts)local tab=self:Tab({Name=opts.Name or "Home",Desc=opts.Desc,Icon=opts.Icon or "house",})local list=tab.List
 local pages=opts.Pages or opts.Tabs
 local panels={}local strip=nil
 if type(pages)=="table" and #pages>0 then
