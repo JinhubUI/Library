@@ -1,4 +1,4 @@
---5
+--6
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -1615,7 +1615,7 @@ or renderedSize.X>=viewport.X*0.7
 or renderedSize.Y>=viewport.Y*0.75
 local maxScale=compactViewport and self.MobileScale or 1
 local edgePadding=compactViewport and 36 or 24
-local scale=math.min(maxScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,compactViewport and 0.35 or 0.45)if self._introDone and self.Open then
+local scale=math.min(maxScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,0.001)if self._introDone and self.Open then
 if instant then
 self.Scale.Scale=self._fitScale
 else
