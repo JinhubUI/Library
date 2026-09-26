@@ -1,4 +1,4 @@
---18
+--19
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -1818,7 +1818,7 @@ local function fadeSlideIn(group,restY)restY=restY or 0
 group.GroupTransparency=1
 group.Position=UDim2.fromOffset(0,restY+14)group.Visible=true
 tween(group,{GroupTransparency=0,Position=UDim2.fromOffset(0,restY)},0.32,Enum.EasingStyle.Quint)end
-function Window:_buildHome(opts)local tab=self:Tab({Name=opts.Name or "Home",Desc=opts.Desc,Icon=opts.Icon or "house",})local list=tab.List
+local DEFAULT_INFO_ENTRIES={{Title="Welcome to JinHub",Desc="Thank you for using JinHub. This script is actively maintained and will continue to receive updates with new features and bug fixes. Your support means everything!",},{Title="Join Our Discord",Desc="Buy Premium, get the latest updates, report bugs, and connect with other users.",Image="rbxassetid://83278450537116",Buttons={{Title="Copy Invite Link",Icon="link-2",Callback=function(window)local copied=type(setclipboard)=="function" and pcall(setclipboard,"https://discord.gg/XPdhVZTaNv")window:Notify({Title=copied and "Link Copied!" or "Clipboard Unavailable",Content=copied and "Discord invite link has been copied to clipboard." or "Your executor does not support copying to the clipboard.",Duration=4,Icon=copied and "check" or "info",})end,},},},{Title="Version Info",Desc="Version: latest\nGame: Karinderya!\nAuthor: Changhoo\nWebsite: jinhub.my.id/topscript",Image="rbxassetid://76078495178149",},{Title="Found a Bug?",Desc="If you encounter any issues or bugs while using this script, please report them directly on our Discord server. Our team will respond as soon as possible.",Image="rbxassetid://89965059528921",},{Title="Disclaimer",Desc="This script is made for educational purposes only. Use at your own risk. JinHub is not responsible for any consequences resulting from the use of this script.",Image="rbxassetid://140438367956051",},}function Window:_buildHome(opts)local tab=self:Tab({Name=opts.Name or "Home",Desc=opts.Desc,Icon=opts.Icon or "house",})local list=tab.List
 local pages=opts.Pages or opts.Tabs
 local panels={}local strip=nil
 if type(pages)=="table" and #pages>0 then
@@ -1875,9 +1875,20 @@ local elapsed=math.floor(os.clock()-started)uptimeValue.Text=string.format("%d:%
 task.wait(1)end
 end)table.insert(panels,{Title=opts.SectionName or "Details",Icon=opts.TabIcon or "layout-grid",Frame=infoPanel})if strip then
 for _,page in ipairs(pages)do
-local panel=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,LayoutOrder=3,Parent=list,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=panel,})if type(page.Content)=="string" then
-local card=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Theme.Surface2,BorderSizePixel=0,LayoutOrder=1,Parent=panel,})card:SetAttribute("NoDrag",true)corner(card)stroke(card)padding(card,14,14,12,14)label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=page.Content,TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,Parent=card,})end
-if type(page.Entries)=="table" then
+local pageName=page.Name or page.Title
+local isInfoPage=type(pageName)=="string" and string.lower(pageName)=="info"
+local pageContent=page.Content
+local pageEntries=page.Entries
+local contentText=type(pageContent)=="string" and string.lower(string.match(pageContent,"^%s*(.-)%s*$")or "")or nil
+local isInfoPlaceholder=pageContent==nil or contentText=="" or contentText=="coming soon..."
+local useDefaultInfo=page.UseDefaultInfo==true
+or(page.UseDefaultInfo~=false and isInfoPage and isInfoPlaceholder)if useDefaultInfo and page.Build==nil and page.Entries==nil then
+pageContent=nil
+pageEntries=DEFAULT_INFO_ENTRIES
+end
+local panel=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,LayoutOrder=3,Parent=list,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=panel,})if type(pageContent)=="string" then
+local card=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Theme.Surface2,BorderSizePixel=0,LayoutOrder=1,Parent=panel,})card:SetAttribute("NoDrag",true)corner(card)stroke(card)padding(card,14,14,12,14)label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=pageContent,TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,Parent=card,})end
+if type(pageEntries)=="table" then
 local categoryOrder={fix=1,optimization=2,added=3,changed=4,removed=5,security=6,}local function getChangeGroups(changes)local groups={}local first=changes[1]if first~=nil then
 if type(first)~="table" then
 return nil
@@ -1907,10 +1918,17 @@ end
 end
 return #groups>0 and groups or nil
 end
-for index,entry in ipairs(page.Entries)do
-local card=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Theme.Surface2,BorderSizePixel=0,LayoutOrder=index,Parent=panel,})card:SetAttribute("NoDrag",true)corner(card)stroke(card)padding(card,14,14,12,14)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,4),Parent=card,})local head=create("Frame",{Size=UDim2.new(1,0,0,18),BackgroundTransparency=1,LayoutOrder=1,Parent=card,})label({Size=UDim2.new(1,-70,1,0),Text=entry.Title or entry.Version or "Update",TextSize=15,Parent=head,})if entry.Date or entry.Tag then
+for index,entry in ipairs(pageEntries)do
+local card=create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Theme.Surface2,BorderSizePixel=0,LayoutOrder=index,Parent=panel,})card:SetAttribute("NoDrag",true)corner(card)stroke(card)padding(card,14,14,12,14)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,4),Parent=card,})local entryImage=entry.Image or entry.Icon
+local hasEntryImage=(type(entryImage)=="string" and entryImage~="")or type(entryImage)=="table"
+local head=create("Frame",{Size=UDim2.new(1,0,0,hasEntryImage and 22 or 18),BackgroundTransparency=1,LayoutOrder=1,Parent=card,})local titleOffset=0
+if hasEntryImage then
+local image=create("ImageLabel",{Position=UDim2.fromOffset(0,1),Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,ScaleType=Enum.ScaleType.Fit,Parent=head,})applyIcon(image,entryImage)titleOffset=27
+end
+local titleRightInset=(entry.Date or entry.Tag)and 70 or 0
+label({Position=UDim2.fromOffset(titleOffset,0),Size=UDim2.new(1,-(titleOffset+titleRightInset),1,0),Text=entry.Title or entry.Version or "Update",TextSize=15,Parent=head,})if entry.Date or entry.Tag then
 local chip=create("Frame",{AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),Size=UDim2.fromOffset(0,20),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=Theme.Surface,BorderSizePixel=0,Parent=head,})corner(chip,UDim.new(0,5))stroke(chip)padding(chip,8,8)label({Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Text=entry.Tag or entry.Date,TextSize=12,TextColor3=Theme.Muted,TextTruncate=Enum.TextTruncate.None,Parent=chip,})end
-local body=entry.Content or entry.Body
+local body=entry.Content or entry.Body or entry.Desc
 local changeGroups=type(entry.Changes)=="table" and getChangeGroups(entry.Changes)or nil
 if changeGroups then
 body=nil
@@ -1922,6 +1940,18 @@ elseif type(entry.Changes)=="table" and #entry.Changes>0 then
 body="• "..table.concat(entry.Changes,"\n• ")end
 if body then
 label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=body,TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,LayoutOrder=2,Parent=card,})end
+local entryButtons=entry.Buttons
+if type(entryButtons)~="table" and type(entry.Button)=="table" then
+entryButtons={entry.Button}end
+if type(entryButtons)=="table" then
+local firstButtonOrder=(body~=nil or changeGroups~=nil)and 3 or 2
+for buttonIndex,buttonOptions in ipairs(entryButtons)do
+if type(buttonOptions)=="table" and type(buttonOptions.Title)=="string" then
+local button=create("TextButton",{Size=UDim2.new(1,0,0,32),BackgroundColor3=Theme.Accent,BorderSizePixel=0,AutoButtonColor=false,Text=buttonOptions.Icon and "" or buttonOptions.Title,TextColor3=Theme.AccentDark,TextSize=13,FontFace=Fonts.Medium,LayoutOrder=firstButtonOrder+buttonIndex-1,Parent=card,})corner(button,UDim.new(0,6))if buttonOptions.Icon then
+local buttonIcon=create("ImageLabel",{Position=UDim2.new(0,10,0.5,-7),Size=UDim2.fromOffset(14,14),BackgroundTransparency=1,ImageColor3=Theme.AccentDark,ScaleType=Enum.ScaleType.Fit,Parent=button,})applyIcon(buttonIcon,buttonOptions.Icon)label({Position=UDim2.fromOffset(30,0),Size=UDim2.new(1,-40,1,0),Text=buttonOptions.Title,TextSize=13,FontFace=Fonts.Medium,TextColor3=Theme.AccentDark,Parent=button,})end
+button.MouseButton1Click:Connect(function()safeCall(buttonOptions.Callback,self)end)end
+end
+end
 end
 end
 if type(page.Build)=="function" then
