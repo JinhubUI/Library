@@ -1,4 +1,5 @@
---3
+--5
+
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
@@ -1330,7 +1331,7 @@ end)end
 if type(opts.Keybind)=="string" then
 opts.Keybind=Enum.KeyCode[opts.Keybind]end
 local size=opts.Size or UDim2.fromOffset(640,480)local keybind=opts.Keybind or Enum.KeyCode.RightControl
-local mobileScale=type(opts.MobileScale)=="number" and opts.MobileScale or 0.82
+local mobileScale=type(opts.MobileScale)=="number" and opts.MobileScale or 0.65
 mobileScale=math.clamp(mobileScale,0.35,1)local self=setmetatable({Tabs={},CurrentTab=nil,Open=true,Keybind=keybind,NewElements=opts.NewElements==true,MobileScale=mobileScale,_connections={},_controls={},_elements={},_inputListeners={Began={},Changed={},Ended={},Render={}},_frameSteps={},_destroyed=false,_persistentRegistry=persistentRegistry,_registryName=guiName,},Window)if persistentRegistry then
 persistentRegistry[guiName]={Owner=Library,Window=self}end
 local function dispatch(kind)return function(...)for _,handler in ipairs(self._inputListeners[kind])do
@@ -1606,9 +1607,12 @@ if viewport.X==0 or viewport.Y==0 then
 return
 end
 local size=self.Root.Size
-local width=math.max(size.X.Offset,1)local height=math.max(size.Y.Offset,1)local compactViewport=UserInputService.TouchEnabled
+local width=math.max(size.X.Offset,1)local height=math.max(size.Y.Offset,1)local renderedSize=self.Root.AbsoluteSize
+local compactViewport=UserInputService.TouchEnabled
 or width>=viewport.X*0.7
 or height>=viewport.Y*0.75
+or renderedSize.X>=viewport.X*0.7
+or renderedSize.Y>=viewport.Y*0.75
 local maxScale=compactViewport and self.MobileScale or 1
 local edgePadding=compactViewport and 36 or 24
 local scale=math.min(maxScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,compactViewport and 0.35 or 0.45)if self._introDone and self.Open then
