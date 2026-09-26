@@ -1,3 +1,4 @@
+--v1.2
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
@@ -1329,7 +1330,8 @@ end)end
 if type(opts.Keybind)=="string" then
 opts.Keybind=Enum.KeyCode[opts.Keybind]end
 local size=opts.Size or UDim2.fromOffset(640,480)local keybind=opts.Keybind or Enum.KeyCode.RightControl
-local self=setmetatable({Tabs={},CurrentTab=nil,Open=true,Keybind=keybind,NewElements=opts.NewElements==true,_connections={},_controls={},_elements={},_inputListeners={Began={},Changed={},Ended={},Render={}},_frameSteps={},_destroyed=false,_persistentRegistry=persistentRegistry,_registryName=guiName,},Window)if persistentRegistry then
+local mobileScale=type(opts.MobileScale)=="number" and opts.MobileScale or 0.82
+mobileScale=math.clamp(mobileScale,0.35,1)local self=setmetatable({Tabs={},CurrentTab=nil,Open=true,Keybind=keybind,NewElements=opts.NewElements==true,MobileScale=mobileScale,_connections={},_controls={},_elements={},_inputListeners={Began={},Changed={},Ended={},Render={}},_frameSteps={},_destroyed=false,_persistentRegistry=persistentRegistry,_registryName=guiName,},Window)if persistentRegistry then
 persistentRegistry[guiName]={Owner=Library,Window=self}end
 local function dispatch(kind)return function(...)for _,handler in ipairs(self._inputListeners[kind])do
 handler(...)end
@@ -1602,7 +1604,10 @@ if viewport.X==0 or viewport.Y==0 then
 return
 end
 local size=self.Root.Size
-local scale=math.min(1,(viewport.X-24)/math.max(size.X.Offset,1),(viewport.Y-24)/math.max(size.Y.Offset,1))self._fitScale=math.max(scale,0.45)if self._introDone and self.Open then
+local isTouchEnabled=UserInputService.TouchEnabled
+local maxScale=isTouchEnabled and self.MobileScale or 1
+local edgePadding=isTouchEnabled and 36 or 24
+local scale=math.min(maxScale,(viewport.X-edgePadding)/math.max(size.X.Offset,1),(viewport.Y-edgePadding)/math.max(size.Y.Offset,1))self._fitScale=math.max(scale,isTouchEnabled and 0.35 or 0.45)if self._introDone and self.Open then
 if instant then
 self.Scale.Scale=self._fitScale
 else
