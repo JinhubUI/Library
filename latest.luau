@@ -1,4 +1,4 @@
---10
+--11
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -184,8 +184,12 @@ info=TweenInfo.new(duration,style,direction)tweenInfoCache[key]=info
 end
 local t=TweenService:Create(object,info,props)t:Play()return t
 end
+local TEXT_RENDER_SCALE=0.9
 local function create(className,props,children)local inst=Instance.new(className)for key,value in pairs(props)do
 if key~="Parent" then
+if key=="TextSize"
+and(className=="TextLabel" or className=="TextButton" or className=="TextBox")and type(value)=="number" then
+value=math.max(1,math.floor(value*TEXT_RENDER_SCALE+0.5))end
 inst[key]=value
 end
 end
