@@ -1,4 +1,4 @@
---v1.2
+--3
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
@@ -1450,7 +1450,9 @@ body.GroupTransparency=1
 shadow.ImageTransparency=1
 self.BodyStroke.Transparency=1
 root.Visible=false
-self:_fitToScreen(true)table.insert(self._connections,gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()self:_fitToScreen()self:_clampToScreen()end))if(opts.OpenButton~=nil and opts.OpenButton~=false)or(opts.OpenButton==nil and TOUCH)then
+self:_fitToScreen(true)table.insert(self._connections,gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()self:_fitToScreen()self:_clampToScreen()end))task.defer(function()if not self._destroyed and gui.Parent then
+self:_fitToScreen(true)self:_clampToScreen()end
+end)if(opts.OpenButton~=nil and opts.OpenButton~=false)or(opts.OpenButton==nil and TOUCH)then
 self:_createOpenButton(type(opts.OpenButton)=="table" and opts.OpenButton or{})end
 self._introDone=false
 table.insert(Library.Windows,self)if opts.Home then
@@ -1604,10 +1606,12 @@ if viewport.X==0 or viewport.Y==0 then
 return
 end
 local size=self.Root.Size
-local isTouchEnabled=UserInputService.TouchEnabled
-local maxScale=isTouchEnabled and self.MobileScale or 1
-local edgePadding=isTouchEnabled and 36 or 24
-local scale=math.min(maxScale,(viewport.X-edgePadding)/math.max(size.X.Offset,1),(viewport.Y-edgePadding)/math.max(size.Y.Offset,1))self._fitScale=math.max(scale,isTouchEnabled and 0.35 or 0.45)if self._introDone and self.Open then
+local width=math.max(size.X.Offset,1)local height=math.max(size.Y.Offset,1)local compactViewport=UserInputService.TouchEnabled
+or width>=viewport.X*0.7
+or height>=viewport.Y*0.75
+local maxScale=compactViewport and self.MobileScale or 1
+local edgePadding=compactViewport and 36 or 24
+local scale=math.min(maxScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,compactViewport and 0.35 or 0.45)if self._introDone and self.Open then
 if instant then
 self.Scale.Scale=self._fitScale
 else
