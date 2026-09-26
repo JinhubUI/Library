@@ -1,4 +1,4 @@
---25
+--26
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -231,7 +231,7 @@ if descendant:GetAttribute("JinHubLockedOverlay")then
 setGroupSurfacePosition(descendant,position)end
 end
 end
-local function stroke(parent,color,transparency,thickness)return create("UIStroke",{Color=color or Theme.Stroke,Transparency=transparency or 0,Thickness=thickness or 1,ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Parent=parent,})end
+local function stroke(parent,color,transparency,thickness)return create("UIStroke",{Color=color or Theme.Stroke,Transparency=transparency or 0,Thickness=thickness or 1,ApplyStrokeMode=Enum.ApplyStrokeMode.Contextual,Parent=parent,})end
 local function padding(parent,left,right,top,bottom)return create("UIPadding",{PaddingLeft=UDim.new(0,left or 0),PaddingRight=UDim.new(0,right or 0),PaddingTop=UDim.new(0,top or 0),PaddingBottom=UDim.new(0,bottom or 0),Parent=parent,})end
 local function label(props)local defaults={BackgroundTransparency=1,TextColor3=Theme.Text,TextSize=16,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Center,TextTruncate=Enum.TextTruncate.AtEnd,}for key,value in pairs(props)do
 defaults[key]=value
