@@ -1,4 +1,4 @@
---20
+--21
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -400,10 +400,15 @@ function Tab:_nextOrder()self._order=self._order+1
 return self._order
 end
 function Tab:HStack()local frame=create("Frame",{Name="HStack",Size=UDim2.new(1,0,0,1),BackgroundTransparency=1,LayoutOrder=self:_nextOrder(),Parent=self.List,})frame:SetAttribute("NoDrag",true)create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=frame,})return setmetatable({Tab=self,Frame=frame,Columns={},ColumnLayouts={},SectionOwner=self._sectionOwner,FlatElements=self._flatElements,BoxBorderElements=self._boxBorderElements,CompactElements=true,},HStack)end
-function HStack:_updateHeight()local naturalHeight=0
+function HStack:_updateHeight()local scale=math.max(self.Tab.Window.Scale.Scale,0.001)local naturalHeight=0
 for _,layout in ipairs(self.ColumnLayouts)do
-naturalHeight=math.max(naturalHeight,layout.AbsoluteContentSize.Y)end
-self.Frame.Size=UDim2.new(1,0,0,math.max(1,naturalHeight))end
+naturalHeight=math.max(naturalHeight,layout.AbsoluteContentSize.Y/scale)end
+local availableHeight=self.Tab.List:IsA("ScrollingFrame")and self.Tab.List.AbsoluteWindowSize.Y/scale
+or 0
+if availableHeight<=0 then
+availableHeight=(self.Tab.Window.Body.AbsoluteSize.Y-HEADER_HEIGHT-24)/scale
+end
+availableHeight=math.max(1,availableHeight)self.Frame.Size=UDim2.new(1,0,0,math.max(1,math.min(naturalHeight,availableHeight)))end
 function HStack:VStack()local index=#self.Columns+1
 local column=create("ScrollingFrame",{Name="VStack"..index,Size=UDim2.new(1/index,-8*(index-1)/index,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollingDirection=Enum.ScrollingDirection.Y,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Active=true,LayoutOrder=index,Parent=self.Frame,})local layout=create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Tab.Window.NewElements and 0 or 2),Parent=column,})table.insert(self.Columns,column)table.insert(self.ColumnLayouts,layout)local count=#self.Columns
 for _,existing in ipairs(self.Columns)do
