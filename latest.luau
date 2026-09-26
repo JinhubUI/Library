@@ -1,4 +1,4 @@
---11
+--12
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -158,7 +158,7 @@ end
 return nil
 end
 local BUTTON_HINT_ICON="chevron-right"
-Library.Fonts={Regular=Font.fromEnum(Enum.Font.Gotham),Medium=Font.fromEnum(Enum.Font.GothamMedium),Bold=Font.fromEnum(Enum.Font.GothamBold),}local Theme=Library.Theme
+Library.Fonts={Regular=Font.fromEnum(Enum.Font.Nunito),Medium=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),Bold=Font.fromName("Nunito",Enum.FontWeight.Bold,Enum.FontStyle.Normal),}local Theme=Library.Theme
 local Assets=Library.Assets
 local Fonts=Library.Fonts
 local TOUCH=UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
