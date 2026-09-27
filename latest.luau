@@ -1,4 +1,4 @@
---27
+--28
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -158,7 +158,7 @@ end
 return nil
 end
 local BUTTON_HINT_ICON="chevron-right"
-Library.Fonts={Regular=Font.fromEnum(Enum.Font.Nunito),Medium=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),Bold=Font.fromName("Nunito",Enum.FontWeight.Bold,Enum.FontStyle.Normal),}local Theme=Library.Theme
+Library.Fonts={Regular=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),Medium=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),Bold=Font.fromName("Nunito",Enum.FontWeight.Bold,Enum.FontStyle.Normal),}local Theme=Library.Theme
 local Assets=Library.Assets
 local Fonts=Library.Fonts
 local TOUCH=UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -1601,7 +1601,9 @@ self:_placeIndicator(self.CurrentTab)end
 end)end
 function Window:_showLoader(opts)local duration=opts.LoadingDuration or 1.6
 local gui=self.Gui
-local loader=create("CanvasGroup",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,16),Size=UDim2.fromOffset(300,132),BackgroundColor3=Theme.Background,BorderSizePixel=0,GroupTransparency=1,ZIndex=10,Parent=gui,})local loaderCorner=corner(loader,UDim.new(0,12))local loaderStroke=stroke(loader,Theme.Stroke,1)edgeHighlight(loader)glow(loader,UDim2.fromOffset(320,140),UDim2.new(1,-20,0,-20),0.85,90)glow(loader,UDim2.fromOffset(240,100),UDim2.new(0,10,1,10),0.9,270)local loaderScale=create("UIScale",{Scale=0.92,Parent=loader})local loaderShadow=create("ImageLabel",{Position=UDim2.fromOffset(-25,-25),Size=UDim2.new(1,50,1,50),BackgroundTransparency=1,Image=Assets.Shadow,ImageColor3=Color3.new(0,0,0),ImageTransparency=1,ScaleType=Enum.ScaleType.Slice,SliceCenter=Rect.new(49,49,450,450),ZIndex=0,Parent=loader,})local logoHolder=create("Frame",{Position=UDim2.fromOffset(24,26),Size=UDim2.fromOffset(40,40),BackgroundTransparency=1,Parent=loader,})local logo=create("ImageLabel",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(0.5,0.5),Rotation=-14,BackgroundTransparency=1,ImageColor3=Theme.Accent,ImageTransparency=1,ScaleType=Enum.ScaleType.Fit,Parent=logoHolder,})applyIcon(logo,opts.Icon or Assets.Logo)task.delay(0.15,function()tween(logo,{Size=UDim2.fromScale(0.85,0.85),Rotation=0,ImageTransparency=0},0.6,Enum.EasingStyle.Back)end)label({Position=UDim2.fromOffset(78,30),Size=UDim2.new(1,-100,0,22),Text=opts.LoadingTitle or opts.Title or "JinHub",TextSize=21,Parent=loader,})local statusLabel=label({Position=UDim2.fromOffset(78,52),Size=UDim2.new(1,-100,0,16),Text=opts.LoadingText or opts.Subtitle or "Loading",TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,Parent=loader,})local track=create("Frame",{Position=UDim2.new(0,24,1,-30),Size=UDim2.new(1,-48,0,4),BackgroundColor3=Theme.Surface3,BorderSizePixel=0,ClipsDescendants=true,Parent=loader,})corner(track,UDim.new(1,0))local fill=create("Frame",{Size=UDim2.fromScale(0,1),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Parent=track,})corner(fill,UDim.new(1,0))local sheen=create("Frame",{Position=UDim2.fromScale(-0.4,0),Size=UDim2.fromScale(0.4,1),BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=0.6,BorderSizePixel=0,ZIndex=2,Parent=track,})create("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(0.5,0),NumberSequenceKeypoint.new(1,1),}),Parent=sheen,})tween(loader,{GroupTransparency=0,Position=UDim2.fromScale(0.5,0.5)},0.4,Enum.EasingStyle.Quint)tween(loaderScale,{Scale=1},0.5,Enum.EasingStyle.Back)tween(loaderShadow,{ImageTransparency=0.6},0.4)local sweep=TweenService:Create(sheen,TweenInfo.new(1.1,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1),{Position=UDim2.fromScale(1,0),})sweep:Play()tween(fill,{Size=UDim2.fromScale(0.85,1)},duration*0.8,Enum.EasingStyle.Quart)task.spawn(loadLucide)local steps=opts.LoadingSteps or{"Preparing interface","Loading icons","Almost there"}for index,text in ipairs(steps)do
+local loader=create("CanvasGroup",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,16),Size=UDim2.fromOffset(300,132),BackgroundColor3=Theme.Background,BorderSizePixel=0,GroupTransparency=1,ZIndex=10,Parent=gui,})local loaderCorner=corner(loader,UDim.new(0,12))local loaderStroke=stroke(loader,Theme.Stroke,1)edgeHighlight(loader)glow(loader,UDim2.fromOffset(320,140),UDim2.new(1,-20,0,-20),0.85,90)glow(loader,UDim2.fromOffset(240,100),UDim2.new(0,10,1,10),0.9,270)local loaderScale=create("UIScale",{Scale=(self._fitScale or 1)*0.92,Parent=loader})self._loaderScale=loaderScale
+self._loaderMorphing=false
+local loaderShadow=create("ImageLabel",{Position=UDim2.fromOffset(-25,-25),Size=UDim2.new(1,50,1,50),BackgroundTransparency=1,Image=Assets.Shadow,ImageColor3=Color3.new(0,0,0),ImageTransparency=1,ScaleType=Enum.ScaleType.Slice,SliceCenter=Rect.new(49,49,450,450),ZIndex=0,Parent=loader,})local logoHolder=create("Frame",{Position=UDim2.fromOffset(24,26),Size=UDim2.fromOffset(40,40),BackgroundTransparency=1,Parent=loader,})local logo=create("ImageLabel",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(0.5,0.5),Rotation=-14,BackgroundTransparency=1,ImageColor3=Theme.Accent,ImageTransparency=1,ScaleType=Enum.ScaleType.Fit,Parent=logoHolder,})applyIcon(logo,opts.Icon or Assets.Logo)task.delay(0.15,function()tween(logo,{Size=UDim2.fromScale(0.85,0.85),Rotation=0,ImageTransparency=0},0.6,Enum.EasingStyle.Back)end)label({Position=UDim2.fromOffset(78,30),Size=UDim2.new(1,-100,0,22),Text=opts.LoadingTitle or opts.Title or "JinHub",TextSize=21,Parent=loader,})local statusLabel=label({Position=UDim2.fromOffset(78,52),Size=UDim2.new(1,-100,0,16),Text=opts.LoadingText or opts.Subtitle or "Loading",TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,Parent=loader,})local track=create("Frame",{Position=UDim2.new(0,24,1,-30),Size=UDim2.new(1,-48,0,4),BackgroundColor3=Theme.Surface3,BorderSizePixel=0,ClipsDescendants=true,Parent=loader,})corner(track,UDim.new(1,0))local fill=create("Frame",{Size=UDim2.fromScale(0,1),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Parent=track,})corner(fill,UDim.new(1,0))local sheen=create("Frame",{Position=UDim2.fromScale(-0.4,0),Size=UDim2.fromScale(0.4,1),BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=0.6,BorderSizePixel=0,ZIndex=2,Parent=track,})create("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(0.5,0),NumberSequenceKeypoint.new(1,1),}),Parent=sheen,})tween(loader,{GroupTransparency=0,Position=UDim2.fromScale(0.5,0.5)},0.4,Enum.EasingStyle.Quint)tween(loaderScale,{Scale=self._fitScale or 1},0.35,Enum.EasingStyle.Quint)tween(loaderShadow,{ImageTransparency=0.6},0.4)local sweep=TweenService:Create(sheen,TweenInfo.new(1.1,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1),{Position=UDim2.fromScale(1,0),})sweep:Play()tween(fill,{Size=UDim2.fromScale(0.85,1)},duration*0.8,Enum.EasingStyle.Quart)task.spawn(loadLucide)local steps=opts.LoadingSteps or{"Preparing interface","Loading icons","Almost there"}for index,text in ipairs(steps)do
 task.delay(duration*(index-1)/#steps,function()if loader.Parent then
 statusLabel.Text=text
 end
@@ -1613,8 +1615,13 @@ end
 for _,item in ipairs(logoHolder:GetChildren())do
 tween(item,{ImageTransparency=1},0.15)end
 tween(track,{BackgroundTransparency=1},0.15)tween(fill,{BackgroundTransparency=1},0.15)tween(sheen,{BackgroundTransparency=1},0.1)local fit=self._fitScale or 1
+self._loaderMorphing=true
 local target=self.Root.Size
-tween(loader,{Size=UDim2.fromOffset(target.X.Offset*fit,target.Y.Offset*fit),Position=UDim2.fromScale(0.5,0.5),},0.5,Enum.EasingStyle.Quint)tween(loaderCorner,{CornerRadius=UDim.new(0,10)},0.5,Enum.EasingStyle.Quint)tween(loaderScale,{Scale=1},0.5,Enum.EasingStyle.Quint)task.delay(0.28,function()self:_playIntro(true)tween(loader,{GroupTransparency=1},0.25)tween(loaderStroke,{Transparency=1},0.2)tween(loaderShadow,{ImageTransparency=1},0.2)end)task.delay(0.6,function()loader:Destroy()end)end)end)end
+tween(loader,{Size=UDim2.fromOffset(target.X.Offset*fit,target.Y.Offset*fit),Position=UDim2.fromScale(0.5,0.5),},0.5,Enum.EasingStyle.Quint)tween(loaderCorner,{CornerRadius=UDim.new(0,10)},0.5,Enum.EasingStyle.Quint)tween(loaderScale,{Scale=1},0.5,Enum.EasingStyle.Quint)task.delay(0.28,function()self:_playIntro(true)tween(loader,{GroupTransparency=1},0.25)tween(loaderStroke,{Transparency=1},0.2)tween(loaderShadow,{ImageTransparency=1},0.2)end)task.delay(0.6,function()loader:Destroy()if self._loaderScale==loaderScale then
+self._loaderScale=nil
+self._loaderMorphing=false
+end
+end)end)end)end
 function Window:_fitToScreen(instant)local camera=workspace.CurrentCamera
 local viewport=camera and camera.ViewportSize or self.Gui.AbsoluteSize
 if viewport.X==0 or viewport.Y==0 then
@@ -1623,7 +1630,13 @@ end
 local size=self.Root.Size
 local renderedSize=self.Root.AbsoluteSize
 local currentScale=math.max(self.Scale.Scale,0.001)local width=math.max(size.X.Offset,renderedSize.X/currentScale,1)local height=math.max(size.Y.Offset,renderedSize.Y/currentScale,1)local edgePadding=40*2
-local scale=math.min(self.MobileScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,0.3)if self._introDone and self.Open then
+local scale=math.min(self.MobileScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,0.3)if self.OpenButtonScale and self.OpenButtonScale.Parent then
+self.OpenButtonScale.Scale=self._fitScale
+end
+if self._loaderScale and self._loaderScale.Parent and not self._loaderMorphing then
+self._loaderScale.Scale=self._fitScale*0.92
+end
+if self._introDone and self.Open then
 if instant then
 self.Scale.Scale=self._fitScale
 else
@@ -1641,7 +1654,7 @@ local clamped=Vector2.new(math.clamp(centre.X,math.min(half.X,viewport.X/2),math
 tween(root,{Position=UDim2.fromOffset(clamped.X,clamped.Y)},0.25,Enum.EasingStyle.Quint)end
 end
 function Window:_createOpenButton(opts)local gui=self.Gui
-local pill=create("TextButton",{AnchorPoint=Vector2.new(0.5,0),Position=UDim2.new(0.5,0,0,14),Size=UDim2.fromOffset(0,40),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=Theme.Background,BorderSizePixel=0,Text="",AutoButtonColor=false,ZIndex=30,Parent=gui,})corner(pill,UDim.new(1,0))stroke(pill,Theme.Stroke)padding(pill,12,16)local icon=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,0,0.5,0),Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,ImageColor3=Theme.Accent,ScaleType=Enum.ScaleType.Fit,ZIndex=31,Parent=pill,})applyIcon(icon,opts.Icon or Assets.Logo)label({Position=UDim2.fromOffset(28,0),Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Text=opts.Title or "JinHub",TextSize=16,TextTruncate=Enum.TextTruncate.None,ZIndex=31,Parent=pill,})self.OpenButton=pill
+local pill=create("TextButton",{AnchorPoint=Vector2.new(0.5,0),Position=UDim2.new(0.5,0,0,14),Size=UDim2.fromOffset(0,40),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=Theme.Background,BorderSizePixel=0,Text="",AutoButtonColor=false,ZIndex=30,Parent=gui,})corner(pill,UDim.new(1,0))stroke(pill,Theme.Stroke)padding(pill,12,16)self.OpenButtonScale=create("UIScale",{Scale=self._fitScale or 1,Parent=pill,})local icon=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,0,0.5,0),Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,ImageColor3=Theme.Accent,ScaleType=Enum.ScaleType.Fit,ZIndex=31,Parent=pill,})applyIcon(icon,opts.Icon or Assets.Logo)label({Position=UDim2.fromOffset(28,0),Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Text=opts.Title or "JinHub",TextSize=16,TextTruncate=Enum.TextTruncate.None,ZIndex=31,Parent=pill,})self.OpenButton=pill
 local dragging,moved=false,false
 local grab=Vector2.zero
 pill.InputBegan:Connect(function(input)if isPress(input)then
