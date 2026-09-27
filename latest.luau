@@ -1,4 +1,4 @@
---33
+--34
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -909,7 +909,6 @@ local multi=opts.Multi==true
 local stacked=opts.Modern==true
 local inStack=self._hstack~=nil
 local compactTouchPopup=UserInputService.TouchEnabled
-and self.Window.NewElements==true
 and not stacked
 and not inStack
 local options=opts.Options or{}local frame,frameStroke,height
@@ -1047,7 +1046,7 @@ return math.min(math.max(chip.AbsoluteSize.X,1),screenAvailable)end
 if inStack then
 return math.min(math.max(frame.AbsoluteSize.X,1),screenAvailable)end
 local available=math.min(frame.AbsoluteSize.X,screenAvailable)if compactTouchPopup then
-local upper=math.min(165,screenAvailable)local lower=math.min(140,upper)local target=available*0.32
+local upper=math.min(160,screenAvailable)local lower=math.min(140,upper)local target=available*0.25
 return math.clamp(target,lower,upper)end
 local target=available*(TOUCH and 0.60 or 0.48)local upper=math.min(POPUP_MAX_WIDTH,screenAvailable)local lower=math.min(POPUP_MIN_WIDTH,upper)return math.clamp(target,lower,upper)end
 local popupAnimating=false
