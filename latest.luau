@@ -1,5 +1,4 @@
---28
-
+--29
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
@@ -158,7 +157,7 @@ end
 return nil
 end
 local BUTTON_HINT_ICON="chevron-right"
-Library.Fonts={Regular=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),Medium=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),Bold=Font.fromName("Nunito",Enum.FontWeight.Bold,Enum.FontStyle.Normal),}local Theme=Library.Theme
+Library.Fonts={Regular=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),Medium=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),SemiBold=Font.fromName("Nunito",Enum.FontWeight.SemiBold,Enum.FontStyle.Normal),Bold=Font.fromName("Nunito",Enum.FontWeight.Bold,Enum.FontStyle.Normal),}local Theme=Library.Theme
 local Assets=Library.Assets
 local Fonts=Library.Fonts
 local TOUCH=UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -379,8 +378,8 @@ local function titleDesc(parent,name,desc,rightReserve)local title,descLabel
 local inset=parent:GetAttribute("JinHubFlatSectionElement")and 8 or 14
 if desc then
 local top=(CARD_HEIGHT_DESC-38)/2
-title=label({Position=UDim2.fromOffset(inset,top),Size=UDim2.new(1,-(inset+rightReserve),0,18),Text=name,TextSize=16,FontFace=Fonts.Medium,Parent=parent,})descLabel=label({Position=UDim2.fromOffset(inset,top+20),Size=UDim2.new(1,-(inset+rightReserve),0,17),Text=desc,TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,Parent=parent,})else
-title=label({Position=UDim2.fromOffset(inset,0),Size=UDim2.new(1,-(inset+rightReserve),1,0),Text=name,TextSize=16,FontFace=Fonts.Medium,Parent=parent,})end
+title=label({Position=UDim2.fromOffset(inset,top),Size=UDim2.new(1,-(inset+rightReserve),0,18),Text=name,TextSize=17,FontFace=Fonts.SemiBold,Parent=parent,})descLabel=label({Position=UDim2.fromOffset(inset,top+20),Size=UDim2.new(1,-(inset+rightReserve),0,17),Text=desc,TextSize=15,FontFace=Fonts.Regular,TextColor3=Theme.Muted,Parent=parent,})else
+title=label({Position=UDim2.fromOffset(inset,0),Size=UDim2.new(1,-(inset+rightReserve),1,0),Text=name,TextSize=17,FontFace=Fonts.SemiBold,Parent=parent,})end
 return title,descLabel
 end
 local function beginElement(tab,opts,map,className,rightReserve,fallbackName,heightOverride)opts=normalize(opts,map)local height=heightOverride or(opts.Desc and CARD_HEIGHT_DESC or CARD_HEIGHT)local frame,frameStroke
@@ -445,14 +444,15 @@ end
 local fontWeight=opts.FontWeight
 local titleFont=fontWeight=="Regular" and Fonts.Regular
 or fontWeight=="Medium" and Fonts.Medium
-or Fonts.Bold
+or fontWeight=="Bold" and Fonts.Bold
+or Fonts.SemiBold
 local textAlignment=Enum.TextXAlignment.Left
 if type(opts.TextXAlignment)=="string" then
 textAlignment=Enum.TextXAlignment[opts.TextXAlignment]or textAlignment
 elseif typeof(opts.TextXAlignment)=="EnumItem" then
 textAlignment=opts.TextXAlignment
 end
-local title=label({Position=UDim2.new(0,titleLeft,0,0),Size=UDim2.new(1,-(titleLeft+44),1,0),Text=tostring(titleText),TextSize=opts.TextSize or 17,TextTransparency=opts.TextTransparency==nil and 0.05 or opts.TextTransparency,FontFace=titleFont,TextXAlignment=textAlignment,ZIndex=3,Parent=header,})local arrow=arrowIndicator(header,1,-14)arrow:Set(opened)local content=create("Frame",{Name="SectionContent",Position=UDim2.fromOffset(0,38),Size=UDim2.new(1,0,0,0),AutomaticSize=opened and Enum.AutomaticSize.Y or Enum.AutomaticSize.None,BackgroundTransparency=1,Visible=opened,Parent=holder,})local sidePadding=boxBorder and(boxed and 4 or 0)or 0.1
+local title=label({Position=UDim2.new(0,titleLeft,0,0),Size=UDim2.new(1,-(titleLeft+44),1,0),Text=tostring(titleText),TextSize=opts.TextSize or 19,TextTransparency=opts.TextTransparency==nil and 0.05 or opts.TextTransparency,FontFace=titleFont,TextXAlignment=textAlignment,ZIndex=3,Parent=header,})local arrow=arrowIndicator(header,1,-14)arrow:Set(opened)local content=create("Frame",{Name="SectionContent",Position=UDim2.fromOffset(0,38),Size=UDim2.new(1,0,0,0),AutomaticSize=opened and Enum.AutomaticSize.Y or Enum.AutomaticSize.None,BackgroundTransparency=1,Visible=opened,Parent=holder,})local sidePadding=boxBorder and(boxed and 4 or 0)or 0.1
 padding(content,sidePadding,sidePadding,boxed and 1 or 0,boxed and 1 or 0)create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Window.NewElements and(boxBorderChildren and 2 or 0)or 2),Parent=content,})local hoverOutline
 local hoverOutlineStroke
 hoverOutline=create("Frame",{Name="SectionHoverOutline",Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,1,-2),BackgroundTransparency=1,BorderSizePixel=0,Active=false,ZIndex=20,Parent=holder,})corner(hoverOutline,UDim.new(0,8))hoverOutlineStroke=stroke(hoverOutline,Theme.StrokeHover,1,1)local section=setmetatable({Name=tostring(titleText),Window=self.Window,List=content,_order=0,_hstack=self._hstack,_children={},_flatElements=flatChildren,_boxBorderElements=boxBorderChildren,_compactElements=true,},Tab)section._sectionOwner=section
@@ -600,7 +600,7 @@ local step=opts.Step or 1
 local suffix=opts.Suffix or ""
 local numbers=numberFormat(min,max,step)local flatSection=self._flatElements==true
 local frame,frameStroke=card(self,"Frame",CARD_HEIGHT_DESC-(flatSection and 4 or 0),opts)hoverStroke(frame,frameStroke)local inset=frame:GetAttribute("JinHubFlatSectionElement")and 8 or 14
-label({Position=UDim2.fromOffset(inset,12),Size=UDim2.new(1,-(inset+106),0,18),Text=opts.Name or "Slider",Parent=frame,})local valueChip=create("Frame",{AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,frame:GetAttribute("JinHubFlatSectionElement")and-8 or-10,0,9),Size=UDim2.fromOffset(40,24),BackgroundColor3=Theme.Surface,BorderSizePixel=0,ClipsDescendants=true,Parent=frame,})corner(valueChip,UDim.new(0,6))local chipStroke=stroke(valueChip)local valueLabel=label({Size=UDim2.new(1,0,1,0),TextSize=16,TextColor3=Theme.Accent,TextXAlignment=Enum.TextXAlignment.Center,TextTruncate=Enum.TextTruncate.None,Parent=valueChip,})local valueBox=create("TextBox",{Position=UDim2.fromOffset(9,0),Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundTransparency=1,Text="",TextColor3=Theme.Text,TextSize=16,FontFace=Fonts.Medium,TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,Visible=false,Parent=valueChip,})create("UISizeConstraint",{MinSize=Vector2.new(14,0),Parent=valueBox})local suffixLabel=label({Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Text=suffix,TextSize=16,TextColor3=Theme.Accent,TextTruncate=Enum.TextTruncate.None,Visible=false,Parent=valueChip,})local chipButton=create("TextButton",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Text="",AutoButtonColor=false,ZIndex=2,Parent=valueChip,})local editing=false
+label({Position=UDim2.fromOffset(inset,12),Size=UDim2.new(1,-(inset+106),0,18),Text=opts.Name or "Slider",Parent=frame,})local valueChip=create("Frame",{AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,frame:GetAttribute("JinHubFlatSectionElement")and-8 or-10,0,9),Size=UDim2.fromOffset(40,24),BackgroundColor3=Theme.Surface,BorderSizePixel=0,ClipsDescendants=true,Parent=frame,})corner(valueChip,UDim.new(0,6))local chipStroke=stroke(valueChip)local valueLabel=label({Size=UDim2.new(1,0,1,0),TextSize=16,TextColor3=Theme.Accent,TextXAlignment=Enum.TextXAlignment.Center,TextTruncate=Enum.TextTruncate.None,Parent=valueChip,})local valueBox=create("TextBox",{Position=UDim2.fromOffset(9,0),Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundTransparency=1,Text="",TextColor3=Theme.Text,TextSize=16,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,Visible=false,Parent=valueChip,})create("UISizeConstraint",{MinSize=Vector2.new(14,0),Parent=valueBox})local suffixLabel=label({Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Text=suffix,TextSize=16,TextColor3=Theme.Accent,TextTruncate=Enum.TextTruncate.None,Visible=false,Parent=valueChip,})local chipButton=create("TextButton",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Text="",AutoButtonColor=false,ZIndex=2,Parent=valueChip,})local editing=false
 local function fitChip(instant)local width
 if editing then
 width=9+valueBox.AbsoluteSize.X/(self.Window.Scale.Scale)+suffixLabel.TextBounds.X+9
@@ -1251,7 +1251,7 @@ end)end
 holdRepeat(minus,-1)holdRepeat(plus,1)render()task.defer(fitValue,true)return finishElement(self,opts,self_,frame,"Stepper")end
 function Tab:Progress(opts)opts=normalize(opts,{Title="Name",Description="Desc",CurrentValue="Default",Value="Default"})local frame,frameStroke=card(self,"Frame",opts.Desc and CARD_HEIGHT_DESC+10 or CARD_HEIGHT+10,opts)hoverStroke(frame,frameStroke)local top=opts.Desc and(CARD_HEIGHT_DESC-38)/2-2 or 12
 label({Position=UDim2.fromOffset(14,top),Size=UDim2.new(1,-110,0,18),Text=opts.Name or "Progress",Parent=frame,})if opts.Desc then
-label({Position=UDim2.fromOffset(14,top+20),Size=UDim2.new(1,-110,0,17),Text=opts.Desc,TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,Parent=frame,})end
+label({Position=UDim2.fromOffset(14,top+20),Size=UDim2.new(1,-110,0,17),Text=opts.Desc,TextSize=15,FontFace=Fonts.Regular,TextColor3=Theme.Muted,Parent=frame,})end
 local valueLabel=label({AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-14,0,top),Size=UDim2.fromOffset(90,18),TextXAlignment=Enum.TextXAlignment.Right,TextSize=16,TextColor3=Theme.Accent,Parent=frame,})local track=create("Frame",{Position=UDim2.new(0,14,1,-16),Size=UDim2.new(1,-28,0,5),BackgroundColor3=Theme.Surface3,BorderSizePixel=0,Parent=frame,})corner(track,UDim.new(1,0))local fill=create("Frame",{Size=UDim2.new(0,0,1,0),BackgroundColor3=opts.Color or Theme.Accent,BorderSizePixel=0,Parent=track,})corner(fill,UDim.new(1,0))local self_={Value=math.clamp(opts.Default or 0,0,1)}local formatter=opts.Format
 local function render(duration)local frac=self_.Value
 tween(fill,{Size=UDim2.new(frac,0,1,0)},duration,Enum.EasingStyle.Quint)if type(formatter)=="function" then
