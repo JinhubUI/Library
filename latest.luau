@@ -1,4 +1,5 @@
---29
+--30
+
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
@@ -675,6 +676,7 @@ opts.Default={opts.Default}elseif not opts.Multi and type(opts.Default)=="table"
 opts.Default=opts.Default[1]end
 local multi=opts.Multi==true
 local stacked=opts.Modern==true
+local inStack=self._hstack~=nil
 local options=opts.Options or{}local frame,frameStroke,height
 local stackedHeight
 if stacked then
@@ -807,6 +809,8 @@ return math.clamp(contentHeight,POPUP_MIN_HEIGHT,POPUP_MAX_HEIGHT)end
 local function popupWidth()local camera=workspace.CurrentCamera
 local viewport=camera and camera.ViewportSize or Vector2.new(1920,1080)local screenAvailable=math.max(1,viewport.X-16)if stacked then
 return math.min(math.max(chip.AbsoluteSize.X,1),screenAvailable)end
+if inStack then
+return math.min(math.max(frame.AbsoluteSize.X,1),screenAvailable)end
 local available=math.min(frame.AbsoluteSize.X,screenAvailable)local target=available*(TOUCH and 0.60 or 0.48)local upper=math.min(POPUP_MAX_WIDTH,screenAvailable)local lower=math.min(POPUP_MIN_WIDTH,upper)return math.clamp(target,lower,upper)end
 local popupAnimating=false
 local popupAnimationToken=0
@@ -1425,7 +1429,7 @@ end
 end
 if query=="" then
 closeSearch()end
-end)local notifyHolder=create("Frame",{Name="Notifications",AnchorPoint=Vector2.new(1,1),Position=UDim2.new(1,-20,1,-20),Size=UDim2.new(0,280,1,-40),BackgroundTransparency=1,Parent=gui,})local function fitToasts()notifyHolder.Size=UDim2.new(0,math.min(280,gui.AbsoluteSize.X-40),1,-40)end
+end)local notifyHolder=create("Frame",{Name="Notifications",AnchorPoint=Vector2.new(1,1),Position=UDim2.new(1,-20,1,-20),Size=UDim2.new(0,280,1,-40),BackgroundTransparency=1,Parent=gui,})self.NotifyScale=create("UIScale",{Scale=self._fitScale or 1,Parent=notifyHolder,})local function fitToasts()notifyHolder.Size=UDim2.new(0,math.min(280,gui.AbsoluteSize.X-40),1,-40)end
 table.insert(self._connections,gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitToasts))create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,VerticalAlignment=Enum.VerticalAlignment.Bottom,Padding=UDim.new(0,4),Parent=notifyHolder,})self.NotifyHolder=notifyHolder
 self._notifyOrder=0
 self._toasts={}self.MaxNotifications=opts.MaxNotifications or 4
@@ -1632,6 +1636,9 @@ local renderedSize=self.Root.AbsoluteSize
 local currentScale=math.max(self.Scale.Scale,0.001)local width=math.max(size.X.Offset,renderedSize.X/currentScale,1)local height=math.max(size.Y.Offset,renderedSize.Y/currentScale,1)local edgePadding=40*2
 local scale=math.min(self.MobileScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,0.3)if self.OpenButtonScale and self.OpenButtonScale.Parent then
 self.OpenButtonScale.Scale=self._fitScale
+end
+if self.NotifyScale and self.NotifyScale.Parent then
+self.NotifyScale.Scale=self._fitScale
 end
 if self._loaderScale and self._loaderScale.Parent and not self._loaderMorphing then
 self._loaderScale.Scale=self._fitScale*0.92
@@ -2268,7 +2275,7 @@ end
 label({Position=UDim2.fromOffset(titleOffset,0),Size=UDim2.new(1,-28-titleOffset,0,16),Text=opts.Title or "Notification",TextSize=15,TextColor3=titleColor,Parent=inner,})local closeButton=create("TextButton",{AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,6,0,-5),Size=UDim2.fromOffset(24,24),BackgroundTransparency=1,Text="×",TextColor3=Theme.Muted,TextSize=23,FontFace=Fonts.Bold,AutoButtonColor=false,Parent=inner,})closeButton.MouseEnter:Connect(function()tween(closeButton,{TextColor3=Theme.Text},0.15)end)closeButton.MouseLeave:Connect(function()tween(closeButton,{TextColor3=Theme.Muted},0.2)end)if opts.Content then
 label({Position=UDim2.fromOffset(titleOffset,21),Size=UDim2.new(1,-titleOffset,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=opts.Content,TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,Parent=inner,})end
 local track=create("Frame",{AnchorPoint=Vector2.new(0,1),Position=UDim2.new(0,16,1,-8),Size=UDim2.new(1,-32,0,3),BackgroundColor3=Theme.Surface3,BorderSizePixel=0,Parent=toast,})corner(track,UDim.new(1,0))local progress=create("Frame",{Size=UDim2.fromScale(1,1),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Parent=track,})corner(progress,UDim.new(1,0))task.defer(function()if outer.Parent then
-tween(outer,{Size=UDim2.new(1,0,0,toast.AbsoluteSize.Y)},0.3,Enum.EasingStyle.Quint)end
+local scale=math.max(self.NotifyScale and self.NotifyScale.Scale or 1,0.001)tween(outer,{Size=UDim2.new(1,0,0,toast.AbsoluteSize.Y/scale)},0.3,Enum.EasingStyle.Quint)end
 end)tween(slide,{Position=UDim2.fromOffset(0,0)},0.5,Enum.EasingStyle.Back)tween(toast,{GroupTransparency=0},0.3)tween(shadow,{ImageTransparency=0.6},0.4)tween(progress,{Size=UDim2.fromScale(0,1)},duration,Enum.EasingStyle.Linear)local dismissed=false
 local function dismiss()if dismissed then
 return
