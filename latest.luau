@@ -1,4 +1,4 @@
---34
+--35
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -926,7 +926,15 @@ else
 titleLabel,descLabel=titleDesc(header,opts.Name or "Dropdown",opts.Desc,180)end
 local chip=create("Frame",{AnchorPoint=stacked and Vector2.new(0,0)or Vector2.new(1,0.5),Position=stacked
 and UDim2.new(0,chipInset,0,(opts.Desc and(TOUCH and 48 or 46)or(TOUCH and 33 or 29))-(frame:GetAttribute("JinHubFlatSectionElement")and 4 or 0)+4)or UDim2.new(1,-chipInset,0.5,0),Size=stacked and UDim2.new(1,-(chipInset*2),0,CHIP_HEIGHT)or UDim2.fromOffset(60,CHIP_HEIGHT),BackgroundColor3=Theme.Surface,BackgroundTransparency=0,BorderSizePixel=0,ClipsDescendants=true,Parent=header,})corner(chip,UDim.new(0,8))local chipStroke=stroke(chip,Theme.Stroke,0.18,1)create("Frame",{Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,0,1),BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=2,Parent=chip,})local valueLabel=label({Position=UDim2.fromOffset(10,0),Size=UDim2.new(1,-34,1,0),TextColor3=Theme.Text,TextSize=16,TextTruncate=Enum.TextTruncate.None,ClipsDescendants=true,Parent=chip,})local arrow=arrowIndicator(chip,1,-6)local measure=label({Size=UDim2.fromOffset(0,CHIP_HEIGHT),AutomaticSize=Enum.AutomaticSize.X,TextSize=16,Visible=false,Parent=chip,})local fullText=""
-local function trimmed()local maxText=stacked and math.max(40,frame.AbsoluteSize.X-64)or(190-10-34)measure.Text=fullText
+local function inlineChipMaxWidth()local renderedWidth=frame.AbsoluteSize.X
+if renderedWidth<=0 then
+return 190
+end
+local uiScale=math.max(self.Window.Scale.Scale,0.001)local cardWidth=renderedWidth/uiScale
+local titleWidth=TOUCH and 80 or 96
+return math.max(60,cardWidth-titleWidth-34)end
+local function trimmed()local maxText=stacked
+and math.max(40,frame.AbsoluteSize.X-64)or math.max(16,inlineChipMaxWidth()-44)measure.Text=fullText
 if measure.TextBounds.X<=maxText then
 return fullText
 end
@@ -946,7 +954,7 @@ else
 tween(chip,{Size=size},0.2)end
 return
 end
-local width=math.clamp(valueLabel.TextBounds.X+10+34,60,190)reserveRight(titleLabel,descLabel,width+20)if instant then
+local width=math.clamp(valueLabel.TextBounds.X+10+34,60,inlineChipMaxWidth())reserveRight(titleLabel,descLabel,width+20)if instant then
 chip.Size=UDim2.fromOffset(width,CHIP_HEIGHT)else
 tween(chip,{Size=UDim2.fromOffset(width,CHIP_HEIGHT)},0.2)end
 end
@@ -1303,7 +1311,9 @@ return
 end
 local point=pointerPosition()if not dropdownPointInside(point,header)and not dropdownPointInside(point,popup)then
 setOpen(false)end
-end)end,self_)buildOptions()renderValueLabel()popupContent=create("CanvasGroup",{Name="DropdownPopoverContent",Position=UDim2.fromScale(0,0),Size=UDim2.fromScale(1,1),BackgroundTransparency=1,GroupTransparency=0,ZIndex=1001,Parent=popup,})popupContent:SetAttribute("JinHubDropdownPopup",true)searchHolder.Parent=popupContent
+end)end,self_)buildOptions()renderValueLabel()task.defer(function()if not self_._destroyed and frame.Parent then
+renderValueLabel()end
+end)popupContent=create("CanvasGroup",{Name="DropdownPopoverContent",Position=UDim2.fromScale(0,0),Size=UDim2.fromScale(1,1),BackgroundTransparency=1,GroupTransparency=0,ZIndex=1001,Parent=popup,})popupContent:SetAttribute("JinHubDropdownPopup",true)searchHolder.Parent=popupContent
 optionScroller.Parent=popupContent
 task.defer(fitChip,true)local element=finishElement(self,opts,self_,frame,"Dropdown")local baseDestroy=element.Destroy
 function element:Destroy()if window._openDropdown==self_ then
@@ -1346,6 +1356,12 @@ glowIcon(boxHolder,boxIcon,Theme.Muted,UDim2.new(0,8,0.5,0))end
 local box=create("TextBox",{Position=UDim2.fromOffset(boxIcon and 30 or 8,textarea and 8 or 0),Size=UDim2.new(1,boxIcon and-38 or-16,1,textarea and-16 or 0),BackgroundTransparency=1,Text=tostring(opts.Default or ""),PlaceholderText=opts.Placeholder or "",PlaceholderColor3=Theme.Muted,TextColor3=Theme.Text,TextSize=15,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=textarea and Enum.TextYAlignment.Top or Enum.TextYAlignment.Center,TextWrapped=textarea,MultiLine=textarea,ClearTextOnFocus=opts.ClearTextOnFocus==true,TextTruncate=Enum.TextTruncate.None,ClipsDescendants=true,Parent=boxHolder,})boxHolder.ClipsDescendants=true
 local focused=false
 local handle={Value=box.Text,Placeholder=box.PlaceholderText,Locked=opts.Locked==true,}local textInset=(boxIcon and 30 or 8)+8
+local function inlineInputMaxWidth()local renderedWidth=frame.AbsoluteSize.X
+if renderedWidth<=0 then
+return 170
+end
+local uiScale=math.max(self.Window.Scale.Scale,0.001)local cardWidth=renderedWidth/uiScale
+local titleWidth=math.max(TOUCH and 84 or 110,(titleLabel and titleLabel.TextBounds.X or 0)+12)return math.clamp(cardWidth-titleWidth-34,90,200)end
 local function fitBox(instant)if modern then
 local size=UDim2.new(1,-(inset*2),0,inputHeight)if instant then
 boxHolder.Size=size
@@ -1353,8 +1369,7 @@ else
 tween(boxHolder,{Size=size},0.18)end
 return
 end
-local cardWidth=frame.AbsoluteSize.X/self.Window.Scale.Scale
-local maxWidth=math.clamp(cardWidth-14-110-20,100,200)local content=box.Text
+local maxWidth=inlineInputMaxWidth()local content=box.Text
 local measured=box.TextBounds.X
 if #content==0 then
 measured=math.min(box.TextBounds.X,90)end
@@ -1362,7 +1377,8 @@ local width=math.clamp(measured+textInset+12,90,maxWidth)+(focused and 8 or 0)wi
 boxHolder.Size=UDim2.fromOffset(width,30)else
 tween(boxHolder,{Size=UDim2.fromOffset(width,30)},0.18)end
 end
-frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()fitBox(true)end)box:GetPropertyChangedSignal("Text"):Connect(function()fitBox(false)end)box:GetPropertyChangedSignal("TextBounds"):Connect(function()fitBox(false)end)task.defer(fitBox,true)box.Focused:Connect(function()focused=true
+frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()fitBox(true)end)box:GetPropertyChangedSignal("Text"):Connect(function()handle.Value=box.Text
+fitBox(false)end)box:GetPropertyChangedSignal("TextBounds"):Connect(function()fitBox(false)end)task.defer(fitBox,true)box.Focused:Connect(function()focused=true
 tween(boxStroke,{Color=Theme.StrokeHover},0.15)fitBox(false)end)box.FocusLost:Connect(function(enterPressed)focused=false
 tween(boxStroke,{Color=Theme.Stroke},0.15)fitBox(false)if opts.Numeric then
 local number=tonumber(box.Text)if not number then
