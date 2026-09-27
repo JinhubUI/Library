@@ -1,4 +1,4 @@
---30
+--31
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -39,7 +39,7 @@ end
 local lockable=kind=="Toggle" or kind=="Dropdown" or kind=="Input"
 or kind=="Slider" or kind=="Button"
 if opts.Locked==true and lockable and frame and applyLocked then
-applyLocked(frame,window)end
+applyLocked(frame,window,opts.LockedTitle)end
 local sectionOwner=tab and tab._sectionOwner
 if sectionOwner and sectionOwner._children then
 table.insert(sectionOwner._children,element)end
@@ -247,12 +247,12 @@ imageLabel.Image=image
 imageLabel.ImageRectOffset=rectOffset or Vector2.zero
 imageLabel.ImageRectSize=rectSize or Vector2.zero
 end
-applyLocked=function(frame,window)local zIndex=frame.ZIndex
+applyLocked=function(frame,window,lockedTitle)local zIndex=frame.ZIndex
 for _,descendant in ipairs(frame:GetDescendants())do
 if descendant:IsA("GuiObject")then
 zIndex=math.max(zIndex,descendant.ZIndex)end
 end
-local overlay=create("TextButton",{Name="LockedOverlay",Size=UDim2.fromScale(1,1),BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=0.38,BorderSizePixel=0,Text="",AutoButtonColor=false,Active=true,Selectable=false,ZIndex=zIndex+1,Parent=frame,})overlay:SetAttribute("JinHubLockedOverlay",true)local badge=create("Frame",{Name="LockedBadge",AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromOffset(116,34),BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=zIndex+2,Parent=overlay,})corner(badge,UDim.new(0,8))local lockIcon=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,11,0.5,0),Size=UDim2.fromOffset(16,16),BackgroundTransparency=1,ImageColor3=Theme.Muted,ScaleType=Enum.ScaleType.Fit,ZIndex=zIndex+3,Parent=badge,})applyIcon(lockIcon,"lock")create("TextLabel",{Position=UDim2.fromOffset(34,0),Size=UDim2.new(1,-42,1,0),BackgroundTransparency=1,Text="Locked",TextColor3=Theme.Text,TextSize=15,FontFace=Fonts.Medium,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=zIndex+3,Parent=badge,})local frameCorner=frame:FindFirstChildOfClass("UICorner")if frameCorner then
+local overlay=create("TextButton",{Name="LockedOverlay",Size=UDim2.fromScale(1,1),BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=0.38,BorderSizePixel=0,Text="",AutoButtonColor=false,Active=true,Selectable=false,ZIndex=zIndex+1,Parent=frame,})overlay:SetAttribute("JinHubLockedOverlay",true)local badge=create("Frame",{Name="LockedBadge",AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromOffset(116,34),BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=zIndex+2,Parent=overlay,})corner(badge,UDim.new(0,8))local lockIcon=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,11,0.5,0),Size=UDim2.fromOffset(16,16),BackgroundTransparency=1,ImageColor3=Theme.Muted,ScaleType=Enum.ScaleType.Fit,ZIndex=zIndex+3,Parent=badge,})applyIcon(lockIcon,"lock")create("TextLabel",{Position=UDim2.fromOffset(34,0),Size=UDim2.new(1,-42,1,0),BackgroundTransparency=1,Text=lockedTitle or "Locked",TextColor3=Theme.Text,TextSize=15,FontFace=Fonts.Medium,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=zIndex+3,Parent=badge,})local frameCorner=frame:FindFirstChildOfClass("UICorner")if frameCorner then
 corner(overlay,frameCorner.CornerRadius)end
 local groupPosition=frame:GetAttribute("JinHubCardGroupPosition")if groupPosition then
 setGroupSurfacePosition(overlay,groupPosition)end
@@ -811,7 +811,9 @@ local viewport=camera and camera.ViewportSize or Vector2.new(1920,1080)local scr
 return math.min(math.max(chip.AbsoluteSize.X,1),screenAvailable)end
 if inStack then
 return math.min(math.max(frame.AbsoluteSize.X,1),screenAvailable)end
-local available=math.min(frame.AbsoluteSize.X,screenAvailable)local target=available*(TOUCH and 0.60 or 0.48)local upper=math.min(POPUP_MAX_WIDTH,screenAvailable)local lower=math.min(POPUP_MIN_WIDTH,upper)return math.clamp(target,lower,upper)end
+local available=math.min(frame.AbsoluteSize.X,screenAvailable)if window.NewElements then
+local upper=math.min(TOUCH and 220 or 200,screenAvailable)local lower=math.min(TOUCH and 185 or 170,upper)local target=available*(TOUCH and 0.42 or 0.36)return math.clamp(target,lower,upper)end
+local target=available*(TOUCH and 0.60 or 0.48)local upper=math.min(POPUP_MAX_WIDTH,screenAvailable)local lower=math.min(POPUP_MIN_WIDTH,upper)return math.clamp(target,lower,upper)end
 local popupAnimating=false
 local popupAnimationToken=0
 local popupContent=nil
@@ -1084,29 +1086,33 @@ popupShadow:Destroy()end
 baseDestroy()end
 return element
 end
-function Tab:Input(opts)opts=normalize(opts,{Title="Name",Description="Desc",PlaceholderText="Placeholder",CurrentValue="Default",Value="Default"})local modern=opts.Modern==true
+function Tab:Input(opts)opts=normalize(opts,{Title="Name",Description="Desc",InputIcon="Icon",PlaceholderText="Placeholder",CurrentValue="Default",Value="Default",})local textarea=opts.Type=="Textarea"
+local modern=opts.Modern==true or textarea
+local inputTop=opts.Desc and 44 or 26
+local inputHeight=textarea and 148 or 30
 local modernHeight
 if modern then
-modernHeight=(opts.Desc and(TOUCH and 92 or 84)or(TOUCH and 80 or 72))-(self._flatElements and 4 or 0)end
+modernHeight=(opts.Desc and(TOUCH and 92 or 84)or(TOUCH and 80 or 72))-(self._flatElements and 4 or 0)if textarea then
+modernHeight=inputTop+inputHeight+18-(self._flatElements and 4 or 0)end
+end
 local frame,frameStroke,_,titleLabel,descLabel
 local rightReserve=160
 if modern then
 rightReserve=nil
 end
 opts,frame,frameStroke,_,titleLabel,descLabel=beginElement(self,opts,{},"Frame",rightReserve,"Input",modernHeight)local inset=frame:GetAttribute("JinHubFlatSectionElement")and 8 or 14
-local inputTop=opts.Desc and 44 or 26
 if modern then
 titleLabel=label({Position=UDim2.fromOffset(inset,5),Size=UDim2.new(1,-(inset*2),0,18),Text=opts.Name or "Input",Parent=frame,})if opts.Desc then
 descLabel=label({Position=UDim2.fromOffset(inset,23),Size=UDim2.new(1,-(inset*2),0,16),Text=opts.Desc,TextSize=13,FontFace=Fonts.Regular,TextColor3=Theme.Muted,Parent=frame,})end
 end
-local boxHolder=create("Frame",{AnchorPoint=modern and Vector2.zero or Vector2.new(1,0.5),Position=modern and UDim2.new(0,inset,0,inputTop)or UDim2.new(1,-10,0.5,0),Size=modern and UDim2.new(1,-(inset*2),0,30)or UDim2.fromOffset(170,30),BackgroundColor3=Theme.Surface,BorderSizePixel=0,Parent=frame,})corner(boxHolder,UDim.new(0,6))local boxStroke=stroke(boxHolder)local boxIcon=opts.Icon
+local boxHolder=create("Frame",{AnchorPoint=modern and Vector2.zero or Vector2.new(1,0.5),Position=modern and UDim2.new(0,inset,0,inputTop)or UDim2.new(1,-10,0.5,0),Size=modern and UDim2.new(1,-(inset*2),0,inputHeight)or UDim2.fromOffset(170,inputHeight),BackgroundColor3=Theme.Surface,BorderSizePixel=0,Parent=frame,})corner(boxHolder,UDim.new(0,6))local boxStroke=stroke(boxHolder)local boxIcon=opts.Icon
 if boxIcon then
 glowIcon(boxHolder,boxIcon,Theme.Muted,UDim2.new(0,8,0.5,0))end
-local box=create("TextBox",{Position=UDim2.fromOffset(boxIcon and 30 or 8,0),Size=UDim2.new(1,boxIcon and-38 or-16,1,0),BackgroundTransparency=1,Text=opts.Default or "",PlaceholderText=opts.Placeholder or "",PlaceholderColor3=Theme.Muted,TextColor3=Theme.Text,TextSize=15,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,TextTruncate=Enum.TextTruncate.None,ClipsDescendants=true,Parent=boxHolder,})boxHolder.ClipsDescendants=true
+local box=create("TextBox",{Position=UDim2.fromOffset(boxIcon and 30 or 8,textarea and 8 or 0),Size=UDim2.new(1,boxIcon and-38 or-16,1,textarea and-16 or 0),BackgroundTransparency=1,Text=tostring(opts.Default or ""),PlaceholderText=opts.Placeholder or "",PlaceholderColor3=Theme.Muted,TextColor3=Theme.Text,TextSize=15,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=textarea and Enum.TextYAlignment.Top or Enum.TextYAlignment.Center,TextWrapped=textarea,MultiLine=textarea,ClearTextOnFocus=opts.ClearTextOnFocus==true,TextTruncate=Enum.TextTruncate.None,ClipsDescendants=true,Parent=boxHolder,})boxHolder.ClipsDescendants=true
 local focused=false
-local textInset=(boxIcon and 30 or 8)+8
+local handle={Value=box.Text,Placeholder=box.PlaceholderText,Locked=opts.Locked==true,}local textInset=(boxIcon and 30 or 8)+8
 local function fitBox(instant)if modern then
-local size=UDim2.new(1,-(inset*2),0,30)if instant then
+local size=UDim2.new(1,-(inset*2),0,inputHeight)if instant then
 boxHolder.Size=size
 else
 tween(boxHolder,{Size=size},0.18)end
@@ -1126,11 +1132,43 @@ tween(boxStroke,{Color=Theme.StrokeHover},0.15)fitBox(false)end)box.FocusLost:Co
 tween(boxStroke,{Color=Theme.Stroke},0.15)fitBox(false)if opts.Numeric then
 local number=tonumber(box.Text)if not number then
 box.Text=""
+handle.Value=""
 return
 end
 end
-safeCall(opts.Callback,box.Text,enterPressed)end)return finishElement(self,opts,{Set=function(_,value)box.Text=tostring(value)flashStroke(frameStroke)end,Get=function()return box.Text
-end,},frame,"Input")end
+handle.Value=box.Text
+safeCall(opts.Callback,box.Text,enterPressed)end)function handle:Set(value,silent)if handle.Locked then
+return
+end
+local text=tostring(value or "")if opts.Numeric and tonumber(text)==nil then
+box.Text=""
+handle.Value=""
+return
+end
+box.Text=text
+handle.Value=text
+flashStroke(frameStroke)if not silent then
+safeCall(opts.Callback,text)end
+end
+function handle:Get()return box.Text
+end
+function handle:SetPlaceholder(value)handle.Placeholder=tostring(value or "")box.PlaceholderText=handle.Placeholder
+end
+function handle:Lock(title)handle.Locked=true
+local overlay=frame:FindFirstChild("LockedOverlay")if overlay then
+local badge=overlay:FindFirstChild("LockedBadge")local titleLabel=badge and badge:FindFirstChildOfClass("TextLabel")if titleLabel then
+titleLabel.Text=title or opts.LockedTitle or "Locked"
+end
+overlay.Visible=true
+else
+applyLocked(frame,handle._window,title or opts.LockedTitle)end
+end
+function handle:Unlock()handle.Locked=false
+local overlay=frame:FindFirstChild("LockedOverlay")if overlay then
+overlay:Destroy()end
+end
+local element=finishElement(self,opts,handle,frame,"Input")safeCall(opts.Callback,handle.Value)return element
+end
 function Tab:Keybind(opts)local frame,frameStroke,_,titleLabel,descLabel
 opts,frame,frameStroke,_,titleLabel,descLabel=beginElement(self,opts,{Title="Name",Description="Desc",CurrentKeybind="Default",Value="Default"},"Frame",110,"Keybind")if type(opts.Default)=="string" then
 opts.Default=Enum.KeyCode[opts.Default]end
