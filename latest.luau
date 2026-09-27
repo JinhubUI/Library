@@ -1,4 +1,4 @@
---31
+--32
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -37,7 +37,7 @@ if window then
 window._elements=window._elements or{}window._elements[element]=true
 end
 local lockable=kind=="Toggle" or kind=="Dropdown" or kind=="Input"
-or kind=="Slider" or kind=="Button"
+or kind=="Slider" or kind=="Button" or kind=="Paragraph"
 if opts.Locked==true and lockable and frame and applyLocked then
 applyLocked(frame,window,opts.LockedTitle)end
 local sectionOwner=tab and tab._sectionOwner
@@ -240,13 +240,67 @@ return create("TextLabel",defaults)end
 local function glow(parent,size,position,transparency,rotation)local image=create("ImageLabel",{AnchorPoint=Vector2.new(0.5,0.5),Position=position,Size=size,BackgroundTransparency=1,Image=Assets.Glow,ImageColor3=Color3.fromRGB(226,218,230),ImageTransparency=transparency,ZIndex=0,Parent=parent,})create("UIGradient",{Color=ColorSequence.new(Color3.fromRGB(255,255,255),Theme.Accent),Rotation=rotation or 90,Parent=image,})return image
 end
 local function edgeHighlight(parent)return create("Frame",{Position=UDim2.fromOffset(0,0),Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=0.93,BorderSizePixel=0,ZIndex=0,Parent=parent,})end
+local applyImageAsset
 local function applyIcon(imageLabel,icon)local image,rectOffset,rectSize=resolveIcon(icon)if not image then
 return
 end
+if type(image)=="number" then
+image="rbxassetid://"..tostring(image)end
+if type(image)~="string" then
+return
+end
+if image:find("^http")and applyImageAsset then
+applyImageAsset(imageLabel,image)else
 imageLabel.Image=image
+end
 imageLabel.ImageRectOffset=rectOffset or Vector2.zero
 imageLabel.ImageRectSize=rectSize or Vector2.zero
 end
+local externalImageCache={}applyImageAsset=function(imageLabel,source)if type(source)~="string" then
+return
+end
+if not source:find("^http")or source:find("roblox.com",1,true)or type(writefile)~="function" or typeof(getcustomasset)~="function" then
+imageLabel.Image=source
+return
+end
+if externalImageCache[source]then
+imageLabel.Image=externalImageCache[source]return
+end
+task.spawn(function()local cached=externalImageCache[source]if cached then
+if imageLabel.Parent then
+imageLabel.Image=cached
+end
+return
+end
+local responseOk,body=pcall(function()if type(request)=="function" then
+local response=request({Url=source,Method="GET"})return type(response)=="table" and response.Body or nil
+end
+return game:HttpGet(source)end)if not responseOk or type(body)~="string" or body=="" then
+imageLabel.Image=source
+return
+end
+local folder="JinHubAssets"
+local folderReady=false
+if type(makefolder)=="function" then
+pcall(function()if type(isfolder)~="function" or not isfolder(folder)then
+makefolder(folder)end
+end)if type(isfolder)=="function" then
+pcall(function()folderReady=isfolder(folder)end)end
+end
+local fileName=HttpService:GenerateGUID(false)..".png"
+local path=folderReady and(folder.."/"..fileName)or("JinHubImage-"..fileName)local writeOk=pcall(writefile,path,body)if not writeOk then
+imageLabel.Image=source
+return
+end
+local assetOk,asset=pcall(getcustomasset,path)if not assetOk or type(asset)~="string" then
+imageLabel.Image=source
+return
+end
+externalImageCache[source]=asset
+if imageLabel.Parent then
+imageLabel.Image=asset
+end
+end)end
 applyLocked=function(frame,window,lockedTitle)local zIndex=frame.ZIndex
 for _,descendant in ipairs(frame:GetDescendants())do
 if descendant:IsA("GuiObject")then
@@ -531,9 +585,173 @@ task.wait(rate)end
 end)function handle:SetUpdateRate(seconds)rate=math.max(tonumber(seconds)or rate,0.05)end
 end
 return finishElement(self,opts,handle,text_,"Label")end
-function Tab:Paragraph(opts)opts=normalize(opts,{Title="Name"})local frame=card(self,"Frame",0,opts)frame.AutomaticSize=Enum.AutomaticSize.Y
-padding(frame,14,14,11,12)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,4),Parent=frame,})label({Size=UDim2.new(1,0,0,14),Text=opts.Name or "",LayoutOrder=1,Parent=frame,})local content=label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=opts.Content or "",TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,LayoutOrder=2,Parent=frame,})return finishElement(self,opts,{Set=function(_,value)content.Text=value
-end,},frame,"Paragraph")end
+function Tab:Paragraph(opts)opts=normalize(opts,{Title="Name",Description="Desc"})local frame=card(self,"Frame",0,opts)frame.AutomaticSize=Enum.AutomaticSize.Y
+frame.ClipsDescendants=true
+local sizePreset=tostring(opts.Size or "Default"):lower()local justify=tostring(opts.Justify or "Between"):lower()local textAlignment=justify=="center" and Enum.TextXAlignment.Center
+or justify=="right" and Enum.TextXAlignment.Right
+or Enum.TextXAlignment.Left
+local rowAlignment=justify=="center" and Enum.HorizontalAlignment.Center
+or justify=="right" and Enum.HorizontalAlignment.Right
+or Enum.HorizontalAlignment.Left
+local verticalPadding=sizePreset=="small" and 8 or sizePreset=="large" and 15 or 11
+local horizontalPadding=sizePreset=="small" and 10 or sizePreset=="large" and 18 or 14
+padding(frame,horizontalPadding,horizontalPadding,verticalPadding,verticalPadding)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,6),Parent=frame,})local thumbnail=create("ImageLabel",{Name="ParagraphThumbnail",Size=UDim2.new(1,0,0,math.clamp(tonumber(opts.ThumbnailSize)or 80,24,256)),BackgroundColor3=Theme.Surface,BackgroundTransparency=1,BorderSizePixel=0,ScaleType=Enum.ScaleType.Crop,Visible=false,LayoutOrder=0,Parent=frame,})corner(thumbnail,UDim.new(0,6))local titleRow=create("Frame",{Name="ParagraphTitleRow",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,BorderSizePixel=0,LayoutOrder=1,Parent=frame,})create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,HorizontalAlignment=rowAlignment,Padding=UDim.new(0,8),Parent=titleRow,})local inlineImageSize=math.clamp(tonumber(opts.ImageSize)or 30,12,64)local inlineImageHolder=create("Frame",{Name="ParagraphImageHolder",Size=UDim2.fromOffset(inlineImageSize,inlineImageSize),BackgroundTransparency=1,Visible=false,LayoutOrder=1,Parent=titleRow,})local inlineImage=create("ImageLabel",{Name="ParagraphImage",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ScaleType=Enum.ScaleType.Fit,Parent=inlineImageHolder,})local titleText=label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(opts.Name or ""),TextSize=17,FontFace=Fonts.SemiBold,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextXAlignment=textAlignment,LayoutOrder=2,Parent=titleRow,})local initialDesc=opts.Desc
+if initialDesc==nil then
+initialDesc=opts.Content
+end
+local content=label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(initialDesc or ""),TextSize=sizePreset=="large" and 16 or sizePreset=="small" and 14 or 15,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,Visible=initialDesc~=nil and tostring(initialDesc)~="",TextXAlignment=textAlignment,LayoutOrder=3,Parent=frame,})local buttonsContainer
+local function addActionButton(buttonOptions,index)if type(buttonOptions)~="table" then
+return
+end
+local variant=tostring(buttonOptions.Variant or "White"):lower()local primary=variant=="primary"
+local action=create("TextButton",{Name="ParagraphActionButton",Size=UDim2.new(1,0,0,38),BackgroundColor3=primary and Theme.Accent or Theme.Surface3,BorderSizePixel=0,AutoButtonColor=false,Text="",LayoutOrder=index,Parent=buttonsContainer,})corner(action,UDim.new(0,7))local actionStroke=stroke(action,primary and Theme.Accent or Theme.Stroke,primary and 0.3 or 0)local actionTextColor=primary and Theme.AccentDark or Theme.Text
+local actionIconColor=primary and Theme.AccentDark or Theme.Accent
+local actionTitle=tostring(buttonOptions.Title or "Button")local actionIcon
+if buttonOptions.Icon then
+local holder=create("Frame",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,12,0.5,0),Size=UDim2.fromOffset(16,16),BackgroundTransparency=1,Parent=action,})actionIcon=create("ImageLabel",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ImageColor3=actionIconColor,ScaleType=Enum.ScaleType.Fit,Parent=holder,})applyIcon(actionIcon,buttonOptions.Icon)end
+label({AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.new(1,actionIcon and-52 or-24,1,0),Text=actionTitle,TextSize=15,FontFace=Fonts.Medium,TextColor3=actionTextColor,TextXAlignment=Enum.TextXAlignment.Center,TextTruncate=Enum.TextTruncate.AtEnd,Parent=action,})action.MouseEnter:Connect(function()if not primary then
+tween(action,{BackgroundColor3=Theme.Surface2},0.12)tween(actionStroke,{Color=Theme.StrokeHover},0.12)end
+end)action.MouseLeave:Connect(function()if not primary then
+tween(action,{BackgroundColor3=Theme.Surface3},0.16)tween(actionStroke,{Color=Theme.Stroke},0.16)end
+end)action.Activated:Connect(function()safeCall(buttonOptions.Callback)end)end
+if type(opts.Buttons)=="table" and #opts.Buttons>0 then
+buttonsContainer=create("Frame",{Name="ParagraphButtons",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,BorderSizePixel=0,LayoutOrder=4,Parent=frame,})create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,10),Parent=buttonsContainer,})for index,buttonOptions in ipairs(opts.Buttons)do
+addActionButton(buttonOptions,index)end
+end
+local function assetSource(value)if type(value)=="number" then
+return "rbxassetid://"..tostring(value)end
+if type(value)=="table" then
+local image=value.Image or value.Icon or value.Name
+if type(image)=="number" then
+return "rbxassetid://"..tostring(image)end
+return image
+end
+return value
+end
+local function setImage(imageLabel,value)imageLabel.Image=""
+imageLabel.ImageRectOffset=Vector2.zero
+imageLabel.ImageRectSize=Vector2.zero
+local source=assetSource(value)if source~=nil then
+if type(source)=="string" and(source:find("^rbxassetid://")or source:find("^rbxasset://")or source:find("^http"))then
+applyImageAsset(imageLabel,source)else
+applyIcon(imageLabel,value)end
+end
+return imageLabel.Image~=""
+end
+local function resolveColor(value)if typeof(value)=="Color3" then
+return value
+elseif type(value)=="string" then
+local namedColors={Red="e53935",Orange="f57c00",Green="43a047",Blue="039be5",White="ffffff",Grey="484848",}value=namedColors[value]or namedColors[value:sub(1,1):upper()..value:sub(2)]or value
+local themeColor=Theme[value]or Theme[value:sub(1,1):upper()..value:sub(2)]if typeof(themeColor)=="Color3" then
+return themeColor
+end
+local ok,parsed=pcall(Color3.fromHex,value)if ok then
+return parsed
+end
+end
+return nil
+end
+if type(opts.Tags)=="table" and #opts.Tags>0 then
+local tagRow=create("ScrollingFrame",{Name="ParagraphTags",Size=UDim2.new(1,0,0,24),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollingDirection=Enum.ScrollingDirection.X,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.X,LayoutOrder=2,Parent=frame,})local tagLayout=create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,SortOrder=Enum.SortOrder.LayoutOrder,VerticalAlignment=Enum.VerticalAlignment.Center,Padding=UDim.new(0,6),Parent=tagRow,})for index,tagOption in ipairs(opts.Tags)do
+local tag=type(tagOption)=="table" and tagOption or{Title=tostring(tagOption)}local tagTitle=tostring(tag.Title or tag.Name or tag.Text or "")if tagTitle~="" then
+local tagColor=resolveColor(tag.Color)or Theme.Surface3
+local brightness=tagColor.R*0.299+tagColor.G*0.587+tagColor.B*0.114
+local tagTextColor=brightness>0.55 and Color3.fromRGB(24,20,25)or Theme.Text
+local chip=create("Frame",{Name="ParagraphTag",Size=UDim2.new(0,0,0,22),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=tagColor,BorderSizePixel=0,LayoutOrder=index,Parent=tagRow,})corner(chip,UDim.new(0,5))if tag.Color then
+stroke(chip,tagColor,0.35)else
+stroke(chip,Theme.Stroke,0)end
+padding(chip,7,7,2,2)create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,Padding=UDim.new(0,5),Parent=chip,})if tag.Icon then
+local icon=create("ImageLabel",{Size=UDim2.fromOffset(13,13),BackgroundTransparency=1,ImageColor3=tagTextColor,ScaleType=Enum.ScaleType.Fit,LayoutOrder=1,Parent=chip,})applyIcon(icon,tag.Icon)end
+label({Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Text=tagTitle,TextSize=13,FontFace=Fonts.Medium,TextColor3=tagTextColor,LayoutOrder=2,Parent=chip,})end
+end
+tagLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()tagRow.CanvasSize=UDim2.new(0,tagLayout.AbsoluteContentSize.X,0,0)end)end
+local handle
+local function setDescription(value)local text=value==nil and "" or tostring(value)handle.Desc=value
+handle.Content=text
+opts.Desc=value
+opts.Content=text
+content.Text=text
+content.Visible=text~=""
+end
+handle={Title=tostring(opts.Name or ""),Desc=initialDesc,Content=tostring(initialDesc or ""),Locked=opts.Locked==true,}local initialImage=opts.Image
+inlineImageHolder.Visible=setImage(inlineImage,initialImage)inlineImageHolder.Size=UDim2.fromOffset(inlineImageSize,inlineImageSize)titleText.Size=UDim2.new(1,inlineImageHolder.Visible and-(inlineImageSize+8)or 0,0,0)titleRow.Visible=titleText.Text~="" or inlineImageHolder.Visible
+thumbnail.Visible=setImage(thumbnail,opts.Thumbnail)thumbnail.Size=UDim2.new(1,0,0,math.clamp(tonumber(opts.ThumbnailSize)or 80,24,256))local cardColor=resolveColor(opts.Color)local titleColor=Theme.Text
+local descColor=Theme.Muted
+if cardColor then
+frame.BackgroundColor3=cardColor
+local brightness=cardColor.R*0.299+cardColor.G*0.587+cardColor.B*0.114
+titleColor=brightness>0.55 and Color3.fromRGB(24,20,25)or Color3.fromRGB(245,241,246)descColor=titleColor:Lerp(cardColor,0.3)end
+titleText.TextColor3=titleColor
+content.TextColor3=descColor
+if inlineImageHolder.Visible then
+inlineImage.ImageColor3=opts.IconThemed==true and Theme.Accent or titleColor
+end
+local element=finishElement(self,opts,handle,frame,"Paragraph")function handle:SetTitle(value)handle.Title=tostring(value or "")opts.Name=handle.Title
+titleText.Text=handle.Title
+titleRow.Visible=handle.Title~="" or inlineImageHolder.Visible
+return handle
+end
+function handle:SetDesc(value)setDescription(value)return handle
+end
+function handle:SetContent(value)setDescription(value)return handle
+end
+function handle:Set(value)setDescription(value)return handle
+end
+function handle:Get()return content.Text
+end
+function handle:SetImage(value,imageSize)inlineImageSize=math.clamp(tonumber(imageSize)or inlineImageSize,12,64)inlineImageHolder.Size=UDim2.fromOffset(inlineImageSize,inlineImageSize)inlineImageHolder.Visible=setImage(inlineImage,value)inlineImage.ImageColor3=opts.IconThemed==true and Theme.Accent or titleColor
+titleText.Size=UDim2.new(1,inlineImageHolder.Visible and-(inlineImageSize+8)or 0,0,0)titleRow.Visible=titleText.Text~="" or inlineImageHolder.Visible
+opts.Image=value
+opts.ImageSize=inlineImageSize
+return handle
+end
+function handle:SetThumbnail(value,imageSize)local height=math.clamp(tonumber(imageSize)or tonumber(opts.ThumbnailSize)or 80,24,256)thumbnail.Size=UDim2.new(1,0,0,height)thumbnail.Visible=setImage(thumbnail,value)opts.Thumbnail=value
+opts.ThumbnailSize=height
+return handle
+end
+function handle:Lock(title)handle.Locked=true
+local overlay=frame:FindFirstChild("LockedOverlay")if overlay then
+local badge=overlay:FindFirstChild("LockedBadge")local titleLabel=badge and badge:FindFirstChildOfClass("TextLabel")if titleLabel then
+titleLabel.Text=title or opts.LockedTitle or "Locked"
+end
+overlay.Visible=true
+else
+applyLocked(frame,handle._window,title or opts.LockedTitle)end
+return handle
+end
+function handle:Unlock()handle.Locked=false
+local overlay=frame:FindFirstChild("LockedOverlay")if overlay then
+overlay:Destroy()end
+return handle
+end
+function handle:Highlight()if handle._destroyed or not frame.Parent then
+return handle
+end
+local old=frame:FindFirstChild("ParagraphHighlight")if old then
+old:Destroy()end
+local highlight=create("Frame",{Name="ParagraphHighlight",Size=UDim2.fromScale(1,1),BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=0.82,BorderSizePixel=0,Active=false,ZIndex=frame.ZIndex+10,Parent=frame,})local groupPosition=frame:GetAttribute("JinHubCardGroupPosition")corner(highlight,UDim.new(0,groupPosition=="Middle" and 0 or CARD_GROUP_CORNER_RADIUS))local gradient=create("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(0.42,0.86),NumberSequenceKeypoint.new(0.5,0.4),NumberSequenceKeypoint.new(0.58,0.86),NumberSequenceKeypoint.new(1,1),}),Offset=Vector2.new(-1,0),Parent=highlight,})tween(gradient,{Offset=Vector2.new(1,0)},0.75,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)task.delay(0.8,function()if highlight.Parent then
+highlight:Destroy()end
+end)return handle
+end
+function handle:UpdateShape()local window=handle._window
+local group=window and window._groupOf and window._groupOf[frame]local members=group and window._groupMembers and window._groupMembers[group]if members then
+local activeMembers={}for _,member in ipairs(members)do
+if member.Parent==group then
+table.insert(activeMembers,member)end
+end
+window._groupMembers[group]=activeMembers
+for index,member in ipairs(activeMembers)do
+local position=#activeMembers==1 and "Single"
+or index==1 and "First"
+or index==#activeMembers and "Last"
+or "Middle"
+setCardGroupPosition(member,position)end
+end
+return handle
+end
+handle.ParagraphFrame=handle
+return element
+end
 function Tab:Button(opts)opts=normalize(opts,{Title="Name",Description="Desc"})local primary=opts.Style=="Primary"
 local height=opts.Desc and CARD_HEIGHT_DESC or CARD_HEIGHT
 local button,buttonStroke=card(self,"TextButton",height,opts)local flatSectionElement=button:GetAttribute("JinHubFlatSectionElement")==true
@@ -677,6 +895,10 @@ opts.Default=opts.Default[1]end
 local multi=opts.Multi==true
 local stacked=opts.Modern==true
 local inStack=self._hstack~=nil
+local compactTouchPopup=UserInputService.TouchEnabled
+and self.Window.NewElements==true
+and not stacked
+and not inStack
 local options=opts.Options or{}local frame,frameStroke,height
 local stackedHeight
 if stacked then
@@ -735,7 +957,7 @@ local POPUP_MAX_HEIGHT=TOUCH and 360 or 330
 local POPUP_MIN_WIDTH=TOUCH and 230 or 220
 local POPUP_MAX_WIDTH=TOUCH and 280 or 265
 local POPUP_VERTICAL_OFFSET=4
-local popup=create("Frame",{Name="DropdownPopover",Position=UDim2.fromOffset(0,0),Size=UDim2.fromOffset(POPUP_MIN_WIDTH,POPUP_MIN_HEIGHT),BackgroundColor3=Theme.Background:Lerp(Theme.Accent,0.075),BackgroundTransparency=0,BorderSizePixel=0,ClipsDescendants=true,Visible=false,ZIndex=1000,Parent=self.Window.Root,})popup:SetAttribute("NoDrag",true)popup:SetAttribute("JinHubDropdownPopup",true)corner(popup,UDim.new(0,13))local popupShadow=create("ImageLabel",{Name="DropdownPopoverShadow",Position=UDim2.fromOffset(-16,-16),Size=UDim2.new(1,32,1,32),BackgroundTransparency=1,Image=Assets.Shadow,ImageColor3=Color3.fromRGB(0,0,0),ImageTransparency=0.52,Visible=false,ScaleType=Enum.ScaleType.Slice,SliceCenter=Rect.new(49,49,450,450),ZIndex=999,Parent=self.Window.Root,})popupShadow:SetAttribute("JinHubDropdownPopup",true)local popupStroke=stroke(popup,Color3.fromRGB(112,88,119),1,1)local popupInnerStroke=stroke(popup,Color3.fromRGB(255,255,255),1,1)create("Frame",{Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,0,1),BackgroundColor3=Theme.Accent,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=1002,Parent=popup,})local searchHolder=create("Frame",{Position=UDim2.fromOffset(10,10),Size=UDim2.new(1,-20,0,SEARCH_HEIGHT),BackgroundColor3=Theme.Surface,BackgroundTransparency=0,BorderSizePixel=0,ZIndex=1001,Parent=popup,})corner(searchHolder,UDim.new(0,10))local searchStroke=stroke(searchHolder,Color3.fromRGB(94,78,101),0.45,1)local searchIcon=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,11,0.5,0),Size=UDim2.fromOffset(15,15),BackgroundTransparency=1,ImageColor3=Color3.fromRGB(145,135,151),ZIndex=1003,Parent=searchHolder,})applyIcon(searchIcon,"search")local searchBox=create("TextBox",{Position=UDim2.fromOffset(35,0),Size=UDim2.new(1,-43,1,0),BackgroundTransparency=1,Text="",PlaceholderText="Search values....",PlaceholderColor3=Color3.fromRGB(112,103,116),TextColor3=Theme.Text,TextSize=16,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,ZIndex=1003,Parent=searchHolder,})if showSelectAll then
+local popup=create("Frame",{Name="DropdownPopover",Position=UDim2.fromOffset(0,0),Size=UDim2.fromOffset(POPUP_MIN_WIDTH,POPUP_MIN_HEIGHT),BackgroundColor3=Theme.Background:Lerp(Theme.Accent,0.075),BackgroundTransparency=0,BorderSizePixel=0,ClipsDescendants=true,Visible=false,ZIndex=1000,Parent=self.Window.Root,})popup:SetAttribute("NoDrag",true)popup:SetAttribute("JinHubDropdownPopup",true)corner(popup,UDim.new(0,13))local popupShadow=create("ImageLabel",{Name="DropdownPopoverShadow",Position=UDim2.fromOffset(-16,-16),Size=UDim2.new(1,32,1,32),BackgroundTransparency=1,Image=Assets.Shadow,ImageColor3=Color3.fromRGB(0,0,0),ImageTransparency=0.52,Visible=false,ScaleType=Enum.ScaleType.Slice,SliceCenter=Rect.new(49,49,450,450),ZIndex=999,Parent=self.Window.Root,})popupShadow:SetAttribute("JinHubDropdownPopup",true)local popupStroke=stroke(popup,Color3.fromRGB(112,88,119),1,1)local popupInnerStroke=stroke(popup,Color3.fromRGB(255,255,255),1,1)create("Frame",{Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,0,1),BackgroundColor3=Theme.Accent,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=1002,Parent=popup,})local searchHolder=create("Frame",{Position=UDim2.fromOffset(10,10),Size=UDim2.new(1,-20,0,SEARCH_HEIGHT),BackgroundColor3=Theme.Surface,BackgroundTransparency=0,BorderSizePixel=0,ZIndex=1001,Parent=popup,})corner(searchHolder,UDim.new(0,10))local searchStroke=stroke(searchHolder,Color3.fromRGB(94,78,101),0.45,1)local searchIcon=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,11,0.5,0),Size=UDim2.fromOffset(15,15),BackgroundTransparency=1,ImageColor3=Color3.fromRGB(145,135,151),ZIndex=1003,Parent=searchHolder,})applyIcon(searchIcon,"search")local searchBox=create("TextBox",{Position=UDim2.fromOffset(35,0),Size=UDim2.new(1,-43,1,0),BackgroundTransparency=1,Text="",PlaceholderText=compactTouchPopup and "Search..." or "Search values....",PlaceholderColor3=Color3.fromRGB(112,103,116),TextColor3=Theme.Text,TextSize=compactTouchPopup and 14 or 16,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,ZIndex=1003,Parent=searchHolder,})if showSelectAll then
 local actionRow=create("Frame",{AnchorPoint=Vector2.new(0,1),Position=UDim2.new(0,10,1,-10),Size=UDim2.new(1,-20,0,SELECT_ACTION_HEIGHT),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=1001,Parent=popup,})local actionGroup=create("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ZIndex=1001,Parent=actionRow,})local function makeSelectAction(name,text,position,size,primary,roundedSide)local button=create("TextButton",{Name=name,Position=position,Size=size,BackgroundColor3=primary and Theme.Accent or Theme.Surface3,BackgroundTransparency=0,BorderSizePixel=0,AutoButtonColor=false,Text=text,TextColor3=primary and Theme.AccentDark or Theme.Muted,TextSize=13,FontFace=Fonts.Medium,ZIndex=1002,Parent=actionGroup,})if roundedSide then
 corner(button,UDim.new(0,6))local radius=6
 local squareX=roundedSide=="left" and 1 or 0
@@ -811,8 +1033,9 @@ local viewport=camera and camera.ViewportSize or Vector2.new(1920,1080)local scr
 return math.min(math.max(chip.AbsoluteSize.X,1),screenAvailable)end
 if inStack then
 return math.min(math.max(frame.AbsoluteSize.X,1),screenAvailable)end
-local available=math.min(frame.AbsoluteSize.X,screenAvailable)if window.NewElements then
-local upper=math.min(TOUCH and 220 or 200,screenAvailable)local lower=math.min(TOUCH and 185 or 170,upper)local target=available*(TOUCH and 0.42 or 0.36)return math.clamp(target,lower,upper)end
+local available=math.min(frame.AbsoluteSize.X,screenAvailable)if compactTouchPopup then
+local upper=math.min(165,screenAvailable)local lower=math.min(140,upper)local target=available*0.32
+return math.clamp(target,lower,upper)end
 local target=available*(TOUCH and 0.60 or 0.48)local upper=math.min(POPUP_MAX_WIDTH,screenAvailable)local lower=math.min(POPUP_MIN_WIDTH,upper)return math.clamp(target,lower,upper)end
 local popupAnimating=false
 local popupAnimationToken=0
@@ -964,7 +1187,7 @@ local existing=optionButtons[option]if existing then
 existing.Frame.LayoutOrder=index
 continue
 end
-local button=create("TextButton",{Size=UDim2.new(1,0,0,DROPDOWN_OPTION_HEIGHT),BackgroundColor3=Color3.fromRGB(63,42,76),BackgroundTransparency=1,Text="",AutoButtonColor=false,LayoutOrder=index,ZIndex=1002,Parent=optionScroller,})local check=create("ImageLabel",{AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-10,0.5,0),Size=UDim2.fromOffset(15,15),BackgroundTransparency=1,ImageColor3=Theme.Accent,ImageTransparency=1,ScaleType=Enum.ScaleType.Fit,ZIndex=1004,Parent=button,})applyIcon(check,"check")local checkScale=create("UIScale",{Scale=0.82,Parent=check})local selectionBar=create("Frame",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,1,0.5,0),Size=UDim2.new(0,3,0.62,0),BackgroundColor3=Theme.Accent,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=1004,Parent=button,})corner(selectionBar,UDim.new(1,0))local text_=label({Position=UDim2.fromOffset(13,-1),Size=UDim2.new(1,-38,1,0),Text=tostring(option),TextSize=self._hstack and 13 or 15,TextColor3=Theme.Muted,FontFace=Fonts.Bold,ZIndex=1004,Parent=button,})button.MouseEnter:Connect(function()if not selected[option]then
+local button=create("TextButton",{Size=UDim2.new(1,0,0,DROPDOWN_OPTION_HEIGHT),BackgroundColor3=Color3.fromRGB(63,42,76),BackgroundTransparency=1,Text="",AutoButtonColor=false,LayoutOrder=index,ZIndex=1002,Parent=optionScroller,})local check=create("ImageLabel",{AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-10,0.5,0),Size=UDim2.fromOffset(15,15),BackgroundTransparency=1,ImageColor3=Theme.Accent,ImageTransparency=1,ScaleType=Enum.ScaleType.Fit,ZIndex=1004,Parent=button,})applyIcon(check,"check")local checkScale=create("UIScale",{Scale=0.82,Parent=check})local selectionBar=create("Frame",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,1,0.5,0),Size=UDim2.new(0,3,0.62,0),BackgroundColor3=Theme.Accent,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=1004,Parent=button,})corner(selectionBar,UDim.new(1,0))local text_=label({Position=UDim2.fromOffset(13,-1),Size=UDim2.new(1,-38,1,0),Text=tostring(option),TextSize=(compactTouchPopup or self._hstack)and 13 or 15,TextColor3=Theme.Muted,FontFace=Fonts.Bold,ZIndex=1004,Parent=button,})button.MouseEnter:Connect(function()if not selected[option]then
 tween(text_,{TextColor3=Theme.Text},0.08,Enum.EasingStyle.Quint)end
 end)button.MouseLeave:Connect(function()local on=selected[option]==true
 tween(text_,{TextColor3=on and Theme.Text or Theme.Muted},0.10,Enum.EasingStyle.Quint)end)button.MouseButton1Click:Connect(function()if selected[option]then
