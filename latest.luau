@@ -1,4 +1,4 @@
---26
+--27
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -1341,8 +1341,8 @@ end)end
 if type(opts.Keybind)=="string" then
 opts.Keybind=Enum.KeyCode[opts.Keybind]end
 local size=opts.Size or UDim2.fromOffset(640,480)local keybind=opts.Keybind or Enum.KeyCode.RightControl
-local mobileScale=type(opts.MobileScale)=="number" and opts.MobileScale or 0.55
-mobileScale=math.clamp(mobileScale,0.35,1)local self=setmetatable({Tabs={},_sidebarOrder=0,CurrentTab=nil,Open=true,Keybind=keybind,NewElements=opts.NewElements==true,MobileScale=mobileScale,_connections={},_controls={},_elements={},_inputListeners={Began={},Changed={},Ended={},Render={}},_frameSteps={},_destroyed=false,_persistentRegistry=persistentRegistry,_registryName=guiName,},Window)if persistentRegistry then
+local mobileScale=type(opts.MobileScale)=="number" and opts.MobileScale or 1
+mobileScale=math.clamp(mobileScale,0.3,1)local self=setmetatable({Tabs={},_sidebarOrder=0,CurrentTab=nil,Open=true,Keybind=keybind,NewElements=opts.NewElements==true,MobileScale=mobileScale,_connections={},_controls={},_elements={},_inputListeners={Began={},Changed={},Ended={},Render={}},_frameSteps={},_destroyed=false,_persistentRegistry=persistentRegistry,_registryName=guiName,},Window)if persistentRegistry then
 persistentRegistry[guiName]={Owner=Library,Window=self}end
 local function dispatch(kind)return function(...)for _,handler in ipairs(self._inputListeners[kind])do
 handler(...)end
@@ -1615,21 +1615,15 @@ tween(item,{ImageTransparency=1},0.15)end
 tween(track,{BackgroundTransparency=1},0.15)tween(fill,{BackgroundTransparency=1},0.15)tween(sheen,{BackgroundTransparency=1},0.1)local fit=self._fitScale or 1
 local target=self.Root.Size
 tween(loader,{Size=UDim2.fromOffset(target.X.Offset*fit,target.Y.Offset*fit),Position=UDim2.fromScale(0.5,0.5),},0.5,Enum.EasingStyle.Quint)tween(loaderCorner,{CornerRadius=UDim.new(0,10)},0.5,Enum.EasingStyle.Quint)tween(loaderScale,{Scale=1},0.5,Enum.EasingStyle.Quint)task.delay(0.28,function()self:_playIntro(true)tween(loader,{GroupTransparency=1},0.25)tween(loaderStroke,{Transparency=1},0.2)tween(loaderShadow,{ImageTransparency=1},0.2)end)task.delay(0.6,function()loader:Destroy()end)end)end)end
-function Window:_fitToScreen(instant)local viewport=self.Gui.AbsoluteSize
+function Window:_fitToScreen(instant)local camera=workspace.CurrentCamera
+local viewport=camera and camera.ViewportSize or self.Gui.AbsoluteSize
 if viewport.X==0 or viewport.Y==0 then
 return
 end
 local size=self.Root.Size
 local renderedSize=self.Root.AbsoluteSize
-local currentScale=math.max(self.Scale.Scale,0.001)local width=math.max(size.X.Offset,renderedSize.X/currentScale,1)local height=math.max(size.Y.Offset,renderedSize.Y/currentScale,1)local touchDevice=UserInputService.TouchEnabled
-pcall(function()touchDevice=touchDevice or UserInputService.TouchScreenEnabled
-end)pcall(function()touchDevice=touchDevice or UserInputService.PreferredInput==Enum.PreferredInput.Touch
-end)local compactViewport=touchDevice
-or width>=viewport.X*0.7
-or height>=viewport.Y*0.75
-local maxScale=compactViewport and self.MobileScale or 1
-local edgePadding=compactViewport and 36 or 24
-local scale=math.min(maxScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,compactViewport and 0.35 or 0.45)if self._introDone and self.Open then
+local currentScale=math.max(self.Scale.Scale,0.001)local width=math.max(size.X.Offset,renderedSize.X/currentScale,1)local height=math.max(size.Y.Offset,renderedSize.Y/currentScale,1)local edgePadding=40*2
+local scale=math.min(self.MobileScale,(viewport.X-edgePadding)/width,(viewport.Y-edgePadding)/height)self._fitScale=math.max(scale,0.3)if self._introDone and self.Open then
 if instant then
 self.Scale.Scale=self._fitScale
 else
