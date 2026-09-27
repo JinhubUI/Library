@@ -1,4 +1,4 @@
---32
+--33
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -185,7 +185,10 @@ end
 local t=TweenService:Create(object,info,props)t:Play()return t
 end
 local TEXT_RENDER_SCALE=1.02
-local function create(className,props,children)local inst=Instance.new(className)for key,value in pairs(props)do
+local function create(className,props,children)local inst=Instance.new(className)if className=="TextLabel" then
+inst.RichText=true
+end
+for key,value in pairs(props)do
 if key~="Parent" then
 if key=="TextSize"
 and(className=="TextLabel" or className=="TextButton" or className=="TextBox")and type(value)=="number" then
@@ -233,7 +236,7 @@ end
 end
 local function stroke(parent,color,transparency,thickness)return create("UIStroke",{Color=color or Theme.Stroke,Transparency=transparency or 0,Thickness=thickness or 1,ApplyStrokeMode=Enum.ApplyStrokeMode.Contextual,Parent=parent,})end
 local function padding(parent,left,right,top,bottom)return create("UIPadding",{PaddingLeft=UDim.new(0,left or 0),PaddingRight=UDim.new(0,right or 0),PaddingTop=UDim.new(0,top or 0),PaddingBottom=UDim.new(0,bottom or 0),Parent=parent,})end
-local function label(props)local defaults={BackgroundTransparency=1,TextColor3=Theme.Text,TextSize=16,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Center,TextTruncate=Enum.TextTruncate.AtEnd,}for key,value in pairs(props)do
+local function label(props)local defaults={BackgroundTransparency=1,RichText=true,TextColor3=Theme.Text,TextSize=16,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Center,TextTruncate=Enum.TextTruncate.AtEnd,}for key,value in pairs(props)do
 defaults[key]=value
 end
 return create("TextLabel",defaults)end
@@ -242,29 +245,30 @@ end
 local function edgeHighlight(parent)return create("Frame",{Position=UDim2.fromOffset(0,0),Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=0.93,BorderSizePixel=0,ZIndex=0,Parent=parent,})end
 local applyImageAsset
 local function applyIcon(imageLabel,icon)local image,rectOffset,rectSize=resolveIcon(icon)if not image then
-return
+return false
 end
 if type(image)=="number" then
 image="rbxassetid://"..tostring(image)end
 if type(image)~="string" then
-return
+return false
 end
 if image:find("^http")and applyImageAsset then
-applyImageAsset(imageLabel,image)else
+return applyImageAsset(imageLabel,image)else
 imageLabel.Image=image
 end
 imageLabel.ImageRectOffset=rectOffset or Vector2.zero
 imageLabel.ImageRectSize=rectSize or Vector2.zero
+return image~=""
 end
 local externalImageCache={}applyImageAsset=function(imageLabel,source)if type(source)~="string" then
-return
+return false
 end
 if not source:find("^http")or source:find("roblox.com",1,true)or type(writefile)~="function" or typeof(getcustomasset)~="function" then
 imageLabel.Image=source
-return
+return source~=""
 end
 if externalImageCache[source]then
-imageLabel.Image=externalImageCache[source]return
+imageLabel.Image=externalImageCache[source]return true
 end
 task.spawn(function()local cached=externalImageCache[source]if cached then
 if imageLabel.Parent then
@@ -276,7 +280,9 @@ local responseOk,body=pcall(function()if type(request)=="function" then
 local response=request({Url=source,Method="GET"})return type(response)=="table" and response.Body or nil
 end
 return game:HttpGet(source)end)if not responseOk or type(body)~="string" or body=="" then
+if imageLabel.Parent then
 imageLabel.Image=source
+end
 return
 end
 local folder="JinHubAssets"
@@ -289,18 +295,23 @@ pcall(function()folderReady=isfolder(folder)end)end
 end
 local fileName=HttpService:GenerateGUID(false)..".png"
 local path=folderReady and(folder.."/"..fileName)or("JinHubImage-"..fileName)local writeOk=pcall(writefile,path,body)if not writeOk then
+if imageLabel.Parent then
 imageLabel.Image=source
+end
 return
 end
 local assetOk,asset=pcall(getcustomasset,path)if not assetOk or type(asset)~="string" then
+if imageLabel.Parent then
 imageLabel.Image=source
+end
 return
 end
 externalImageCache[source]=asset
 if imageLabel.Parent then
 imageLabel.Image=asset
 end
-end)end
+end)return true
+end
 applyLocked=function(frame,window,lockedTitle)local zIndex=frame.ZIndex
 for _,descendant in ipairs(frame:GetDescendants())do
 if descendant:IsA("GuiObject")then
@@ -595,11 +606,11 @@ or justify=="right" and Enum.HorizontalAlignment.Right
 or Enum.HorizontalAlignment.Left
 local verticalPadding=sizePreset=="small" and 8 or sizePreset=="large" and 15 or 11
 local horizontalPadding=sizePreset=="small" and 10 or sizePreset=="large" and 18 or 14
-padding(frame,horizontalPadding,horizontalPadding,verticalPadding,verticalPadding)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,6),Parent=frame,})local thumbnail=create("ImageLabel",{Name="ParagraphThumbnail",Size=UDim2.new(1,0,0,math.clamp(tonumber(opts.ThumbnailSize)or 80,24,256)),BackgroundColor3=Theme.Surface,BackgroundTransparency=1,BorderSizePixel=0,ScaleType=Enum.ScaleType.Crop,Visible=false,LayoutOrder=0,Parent=frame,})corner(thumbnail,UDim.new(0,6))local titleRow=create("Frame",{Name="ParagraphTitleRow",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,BorderSizePixel=0,LayoutOrder=1,Parent=frame,})create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,HorizontalAlignment=rowAlignment,Padding=UDim.new(0,8),Parent=titleRow,})local inlineImageSize=math.clamp(tonumber(opts.ImageSize)or 30,12,64)local inlineImageHolder=create("Frame",{Name="ParagraphImageHolder",Size=UDim2.fromOffset(inlineImageSize,inlineImageSize),BackgroundTransparency=1,Visible=false,LayoutOrder=1,Parent=titleRow,})local inlineImage=create("ImageLabel",{Name="ParagraphImage",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ScaleType=Enum.ScaleType.Fit,Parent=inlineImageHolder,})local titleText=label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(opts.Name or ""),TextSize=17,FontFace=Fonts.SemiBold,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextXAlignment=textAlignment,LayoutOrder=2,Parent=titleRow,})local initialDesc=opts.Desc
+padding(frame,horizontalPadding,horizontalPadding,verticalPadding,verticalPadding)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,6),Parent=frame,})local thumbnail=create("ImageLabel",{Name="ParagraphThumbnail",Size=UDim2.new(1,0,0,0),BackgroundColor3=Theme.Surface,BackgroundTransparency=1,BorderSizePixel=0,ScaleType=Enum.ScaleType.Crop,Visible=false,LayoutOrder=0,Parent=frame,})corner(thumbnail,UDim.new(0,6))local titleRow=create("Frame",{Name="ParagraphTitleRow",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,BorderSizePixel=0,LayoutOrder=1,Parent=frame,})create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,HorizontalAlignment=rowAlignment,Padding=UDim.new(0,8),Parent=titleRow,})local inlineImageSize=math.clamp(tonumber(opts.ImageSize)or 30,12,64)local inlineImageHolder=create("Frame",{Name="ParagraphImageHolder",Size=UDim2.fromOffset(inlineImageSize,inlineImageSize),BackgroundTransparency=1,Visible=false,LayoutOrder=1,Parent=titleRow,})local inlineImage=create("ImageLabel",{Name="ParagraphImage",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ScaleType=Enum.ScaleType.Fit,Parent=inlineImageHolder,})local titleText=label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(opts.Name or ""),TextSize=17,FontFace=Fonts.SemiBold,RichText=opts.RichText~=false,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextXAlignment=textAlignment,LayoutOrder=2,Parent=titleRow,})local initialDesc=opts.Desc
 if initialDesc==nil then
 initialDesc=opts.Content
 end
-local content=label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(initialDesc or ""),TextSize=sizePreset=="large" and 16 or sizePreset=="small" and 14 or 15,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,Visible=initialDesc~=nil and tostring(initialDesc)~="",TextXAlignment=textAlignment,LayoutOrder=3,Parent=frame,})local buttonsContainer
+local content=label({Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(initialDesc or ""),TextSize=sizePreset=="large" and 16 or sizePreset=="small" and 14 or 15,FontFace=Fonts.Regular,RichText=opts.RichText~=false,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,Visible=initialDesc~=nil and tostring(initialDesc)~="",TextXAlignment=textAlignment,LayoutOrder=3,Parent=frame,})local buttonsContainer
 local function addActionButton(buttonOptions,index)if type(buttonOptions)~="table" then
 return
 end
@@ -633,10 +644,10 @@ imageLabel.ImageRectOffset=Vector2.zero
 imageLabel.ImageRectSize=Vector2.zero
 local source=assetSource(value)if source~=nil then
 if type(source)=="string" and(source:find("^rbxassetid://")or source:find("^rbxasset://")or source:find("^http"))then
-applyImageAsset(imageLabel,source)else
-applyIcon(imageLabel,value)end
+return applyImageAsset(imageLabel,source)else
+return applyIcon(imageLabel,value)end
 end
-return imageLabel.Image~=""
+return false
 end
 local function resolveColor(value)if typeof(value)=="Color3" then
 return value
@@ -675,7 +686,8 @@ content.Visible=text~=""
 end
 handle={Title=tostring(opts.Name or ""),Desc=initialDesc,Content=tostring(initialDesc or ""),Locked=opts.Locked==true,}local initialImage=opts.Image
 inlineImageHolder.Visible=setImage(inlineImage,initialImage)inlineImageHolder.Size=UDim2.fromOffset(inlineImageSize,inlineImageSize)titleText.Size=UDim2.new(1,inlineImageHolder.Visible and-(inlineImageSize+8)or 0,0,0)titleRow.Visible=titleText.Text~="" or inlineImageHolder.Visible
-thumbnail.Visible=setImage(thumbnail,opts.Thumbnail)thumbnail.Size=UDim2.new(1,0,0,math.clamp(tonumber(opts.ThumbnailSize)or 80,24,256))local cardColor=resolveColor(opts.Color)local titleColor=Theme.Text
+local hasThumbnail=setImage(thumbnail,opts.Thumbnail)thumbnail.Visible=hasThumbnail
+thumbnail.Size=UDim2.new(1,0,0,hasThumbnail and math.clamp(tonumber(opts.ThumbnailSize)or 80,24,256)or 0)local cardColor=resolveColor(opts.Color)local titleColor=Theme.Text
 local descColor=Theme.Muted
 if cardColor then
 frame.BackgroundColor3=cardColor
@@ -705,7 +717,8 @@ opts.Image=value
 opts.ImageSize=inlineImageSize
 return handle
 end
-function handle:SetThumbnail(value,imageSize)local height=math.clamp(tonumber(imageSize)or tonumber(opts.ThumbnailSize)or 80,24,256)thumbnail.Size=UDim2.new(1,0,0,height)thumbnail.Visible=setImage(thumbnail,value)opts.Thumbnail=value
+function handle:SetThumbnail(value,imageSize)local height=math.clamp(tonumber(imageSize)or tonumber(opts.ThumbnailSize)or 80,24,256)local hasThumbnail=setImage(thumbnail,value)thumbnail.Visible=hasThumbnail
+thumbnail.Size=UDim2.new(1,0,0,hasThumbnail and height or 0)opts.Thumbnail=value
 opts.ThumbnailSize=height
 return handle
 end
