@@ -1,4 +1,4 @@
---35
+--36
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -32,7 +32,8 @@ end
 local function finishElement(tab,opts,element,frame,kind)element._type=kind
 element._frame=frame
 element._window=tab and tab.Window
-element._listeners=element._listeners or{}local window=tab and tab.Window
+element._listeners=element._listeners or{}local rootTab=tab and(tab._rootTab or tab)element._rootTab=rootTab
+local window=tab and tab.Window
 if window then
 window._elements=window._elements or{}window._elements[element]=true
 end
@@ -52,6 +53,8 @@ callback(...)end
 window:_autoSave()end
 end
 end
+if rootTab and rootTab._markElementAdded then
+rootTab:_markElementAdded(element)end
 function element:Destroy()if element._destroyed then
 return
 end
@@ -75,6 +78,8 @@ window._controlsDirty=true
 end
 if frame then
 frame:Destroy()end
+if rootTab and rootTab._markElementRemoved then
+rootTab:_markElementRemoved(element)end
 end
 return element
 end
@@ -157,7 +162,7 @@ return entry
 end
 return nil
 end
-local BUTTON_HINT_ICON="chevron-right"
+local BUTTON_HINT_ICON="mouse-pointer-click"
 Library.Fonts={Regular=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),Medium=Font.fromName("Nunito",Enum.FontWeight.Medium,Enum.FontStyle.Normal),SemiBold=Font.fromName("Nunito",Enum.FontWeight.SemiBold,Enum.FontStyle.Normal),Bold=Font.fromName("Nunito",Enum.FontWeight.Bold,Enum.FontStyle.Normal),}local Theme=Library.Theme
 local Assets=Library.Assets
 local Fonts=Library.Fonts
@@ -464,7 +469,7 @@ local HStack={}HStack.__index=HStack
 function Tab:_nextOrder()self._order=self._order+1
 return self._order
 end
-function Tab:HStack()local frame=create("Frame",{Name="HStack",Size=UDim2.new(1,0,0,1),BackgroundTransparency=1,LayoutOrder=self:_nextOrder(),Parent=self.List,})frame:SetAttribute("NoDrag",true)create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=frame,})return setmetatable({Tab=self,Frame=frame,Columns={},ColumnLayouts={},SectionOwner=self._sectionOwner,FlatElements=self._flatElements,BoxBorderElements=self._boxBorderElements,CompactElements=true,},HStack)end
+function Tab:HStack()local frame=create("Frame",{Name="HStack",Size=UDim2.new(1,0,0,1),BackgroundTransparency=1,LayoutOrder=self:_nextOrder(),Parent=self.List,})frame:SetAttribute("NoDrag",true)create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=frame,})return setmetatable({Tab=self,Frame=frame,Columns={},ColumnLayouts={},SectionOwner=self._sectionOwner,RootTab=self._rootTab or self,FlatElements=self._flatElements,BoxBorderElements=self._boxBorderElements,CompactElements=true,},HStack)end
 function HStack:_updateHeight()local scale=math.max(self.Tab.Window.Scale.Scale,0.001)local naturalHeight=0
 for _,layout in ipairs(self.ColumnLayouts)do
 naturalHeight=math.max(naturalHeight,layout.AbsoluteContentSize.Y/scale)end
@@ -478,7 +483,7 @@ function HStack:VStack()local index=#self.Columns+1
 local column=create("ScrollingFrame",{Name="VStack"..index,Size=UDim2.new(1/index,-8*(index-1)/index,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollBarImageTransparency=1,ScrollingDirection=Enum.ScrollingDirection.Y,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Active=true,LayoutOrder=index,Parent=self.Frame,})local layout=create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Tab.Window.NewElements and 0 or 2),Parent=column,})table.insert(self.Columns,column)table.insert(self.ColumnLayouts,layout)local count=#self.Columns
 for _,existing in ipairs(self.Columns)do
 existing.Size=UDim2.new(1/count,-8*(count-1)/count,1,0)end
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()self:_updateHeight()end)self.Tab.List:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()self:_updateHeight()end)self:_updateHeight()return setmetatable({Name=self.Tab.Name,Window=self.Tab.Window,List=column,_order=0,_hstack=self,_sectionOwner=self.SectionOwner,_flatElements=self.FlatElements,_boxBorderElements=self.BoxBorderElements,_compactElements=true,},Tab)end
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()self:_updateHeight()end)self.Tab.List:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()self:_updateHeight()end)self:_updateHeight()return setmetatable({Name=self.Tab.Name,Window=self.Tab.Window,List=column,_order=0,_hstack=self,_sectionOwner=self.SectionOwner,_rootTab=self.RootTab,_flatElements=self.FlatElements,_boxBorderElements=self.BoxBorderElements,_compactElements=true,},Tab)end
 function Tab:Section(text)if type(text)=="table" then
 local opts=normalize(text,{Name="Title",Boxborder="BoxBorder"})local titleText=opts.Title or opts.Name or "Section"
 local opened=opts.Opened==true
@@ -521,7 +526,7 @@ end
 local title=label({Position=UDim2.new(0,titleLeft,0,0),Size=UDim2.new(1,-(titleLeft+44),1,0),Text=tostring(titleText),TextSize=opts.TextSize or 19,TextTransparency=opts.TextTransparency==nil and 0.05 or opts.TextTransparency,FontFace=titleFont,TextXAlignment=textAlignment,ZIndex=3,Parent=header,})local arrow=arrowIndicator(header,1,-14)arrow:Set(opened)local content=create("Frame",{Name="SectionContent",Position=UDim2.fromOffset(0,38),Size=UDim2.new(1,0,0,0),AutomaticSize=opened and Enum.AutomaticSize.Y or Enum.AutomaticSize.None,BackgroundTransparency=1,Visible=opened,Parent=holder,})local sidePadding=boxBorder and(boxed and 4 or 0)or 0.1
 padding(content,sidePadding,sidePadding,boxed and 1 or 0,boxed and 1 or 0)create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Window.NewElements and(boxBorderChildren and 2 or 0)or 2),Parent=content,})local hoverOutline
 local hoverOutlineStroke
-hoverOutline=create("Frame",{Name="SectionHoverOutline",Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,1,-2),BackgroundTransparency=1,BorderSizePixel=0,Active=false,ZIndex=20,Parent=holder,})corner(hoverOutline,UDim.new(0,8))hoverOutlineStroke=stroke(hoverOutline,Theme.StrokeHover,1,1)local section=setmetatable({Name=tostring(titleText),Window=self.Window,List=content,_order=0,_hstack=self._hstack,_children={},_flatElements=flatChildren,_boxBorderElements=boxBorderChildren,_compactElements=true,},Tab)section._sectionOwner=section
+hoverOutline=create("Frame",{Name="SectionHoverOutline",Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,1,-2),BackgroundTransparency=1,BorderSizePixel=0,Active=false,ZIndex=20,Parent=holder,})corner(hoverOutline,UDim.new(0,8))hoverOutlineStroke=stroke(hoverOutline,Theme.StrokeHover,1,1)local section=setmetatable({Name=tostring(titleText),Window=self.Window,List=content,_order=0,_hstack=self._hstack,_rootTab=self._rootTab or self,_children={},_flatElements=flatChildren,_boxBorderElements=boxBorderChildren,_compactElements=true,},Tab)section._sectionOwner=section
 local hovered=false
 local baseStrokeTransparency=boxBorder and 0 or 1
 local function pointerInsideSection(pointer)if not opened or not holder.Parent or not holder.Visible then
@@ -2302,7 +2307,8 @@ end
 function Window:Tab(opts,icon)opts=normalize(opts,{Title="Name",Description="Desc"})if icon~=nil and opts.Icon==nil then
 opts.Icon=icon
 end
-local tab=setmetatable({Name=opts.Name or "Tab",Window=self,_order=0,},Tab)local button=create("TextButton",{Size=UDim2.new(1,0,0,38),BackgroundColor3=Theme.Surface2,BackgroundTransparency=1,Text="",AutoButtonColor=false,LayoutOrder=self:_nextSidebarOrder(),Parent=self.TabList,})corner(button)local buttonStroke=stroke(button,Theme.Stroke,1)tab._button=button
+local tab=setmetatable({Name=opts.Name or "Tab",Window=self,_order=0,},Tab)tab._rootTab=tab
+local button=create("TextButton",{Size=UDim2.new(1,0,0,38),BackgroundColor3=Theme.Surface2,BackgroundTransparency=1,Text="",AutoButtonColor=false,LayoutOrder=self:_nextSidebarOrder(),Parent=self.TabList,})corner(button)local buttonStroke=stroke(button,Theme.Stroke,1)tab._button=button
 local hasIcon=opts.Icon~=nil
 if hasIcon then
 local iconImage=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,12,0.5,0),Size=UDim2.fromOffset(16,16),BackgroundTransparency=1,ImageColor3=Theme.Muted,ScaleType=Enum.ScaleType.Fit,Parent=button,})applyIcon(iconImage,opts.Icon)tab._icon=iconImage
@@ -2318,16 +2324,16 @@ local dividerY=opts.Desc and 68 or 52
 create("Frame",{Position=UDim2.new(0,0,0,dividerY),Size=UDim2.new(1,-24,0,1),BackgroundColor3=Theme.Stroke,BorderSizePixel=0,Parent=page,})end
 local listTop=showTabTitle and(opts.Desc and 80 or 64)or(opts.Desc and 70 or 58)local list=create("ScrollingFrame",{Position=UDim2.fromOffset(0,listTop),Size=UDim2.new(1,0,1,-listTop),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=2,ScrollBarImageColor3=Theme.Accent,ScrollBarImageTransparency=0.5,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Parent=page,})local contentInset=self.NewElements and 15 or 24
 padding(list,contentInset,contentInset,2,24)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.NewElements and 2 or 8),Parent=list,})tab.List=list
-local empty=emptyState(page,opts.Icon or "layout-grid",opts.EmptyText or "Nothing here yet")local elementCount=0
-list.ChildAdded:Connect(function(child)if child:IsA("GuiObject")then
-elementCount+=1
-empty.Visible=false
+local empty=emptyState(page,opts.Icon or "layout-grid",opts.EmptyText or "Nothing here yet")tab._emptyElementCount=0
+tab._emptyState=empty
+function tab:_refreshEmptyState()if self._emptyState and self._emptyState.Parent then
+self._emptyState.Visible=self._emptyElementCount<=0
 end
-end)list.ChildRemoved:Connect(function(child)if child:IsA("GuiObject")then
-elementCount=math.max(elementCount-1,0)empty.Visible=elementCount<=0
 end
-end)empty.Visible=true
-button.MouseEnter:Connect(function()if self.CurrentTab~=tab then
+function tab:_markElementAdded()self._emptyElementCount+=1
+self:_refreshEmptyState()end
+function tab:_markElementRemoved()self._emptyElementCount=math.max(self._emptyElementCount-1,0)self:_refreshEmptyState()end
+tab:_refreshEmptyState()button.MouseEnter:Connect(function()if self.CurrentTab~=tab then
 tween(button,{BackgroundTransparency=0.4},0.12)tween(buttonStroke,{Transparency=0.5},0.12)end
 end)button.MouseLeave:Connect(function()if self.CurrentTab~=tab then
 tween(button,{BackgroundTransparency=1},0.2)tween(buttonStroke,{Transparency=1},0.2)end
