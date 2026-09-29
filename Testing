@@ -1,4 +1,4 @@
---1
+--2
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -38,7 +38,8 @@ if window then
 window._elements=window._elements or{}window._elements[element]=true
 end
 local lockable=kind=="Toggle" or kind=="Dropdown" or kind=="Input"
-or kind=="Slider" or kind=="Button" or kind=="ButtonPair" or kind=="Paragraph"
+or kind=="Slider" or kind=="Button" or kind=="ButtonPair"
+or kind=="CategoryPicker" or kind=="Paragraph"
 if opts.Locked==true and lockable and frame and applyLocked then
 applyLocked(frame,window,opts.LockedTitle)end
 local sectionOwner=tab and tab._sectionOwner
@@ -499,8 +500,69 @@ end
 local initialHeight=explicitHeight or availableHeight()if initialHeight<=0 then
 initialHeight=tonumber(opts.FallbackHeight)or 320
 end
-local frame=create("Frame",{Name=opts.Name or "SubTabs",Size=UDim2.new(1,0,0,initialHeight),BackgroundTransparency=1,LayoutOrder=self:_nextOrder(),Parent=parent,})frame:SetAttribute("NoDrag",true)local strip=create("Frame",{Name="SubTabBar",Size=UDim2.new(1,0,0,36),BackgroundTransparency=1,Parent=frame,})create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,6),Parent=strip,})local pageHost=create("Frame",{Name="SubTabPages",Position=UDim2.fromOffset(0,36),Size=UDim2.new(1,0,1,-36),BackgroundTransparency=1,ClipsDescendants=true,Parent=frame,})local rootTab=self._rootTab or self
-local pages={}local handle=setmetatable({Name=opts.Name or "SubTabs",Window=self.Window,Frame=frame,Pages=pages,SelectedPage=nil,_rootTab=rootTab,_buttons={},_listeners={},},SubTabs)local function selectPage(page,instant)if type(page)=="number" then
+local frame=create("Frame",{Name=opts.Name or "SubTabs",Size=UDim2.new(1,0,0,initialHeight),BackgroundTransparency=1,LayoutOrder=self:_nextOrder(),Parent=parent,})frame:SetAttribute("NoDrag",true)local strip=create("ScrollingFrame",{Name="SubTabBar",Size=UDim2.new(1,0,0,40),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollBarImageTransparency=1,VerticalScrollBarInset=Enum.ScrollBarInset.None,ScrollingDirection=Enum.ScrollingDirection.X,AutomaticCanvasSize=Enum.AutomaticSize.None,CanvasSize=UDim2.new(),ScrollingEnabled=true,Active=true,ClipsDescendants=true,Parent=frame,})local tabLayout=create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,6),Parent=strip,})local function updateTabCanvas()if strip.Parent then
+strip.CanvasSize=UDim2.new(0,math.ceil(tabLayout.AbsoluteContentSize.X),0,0)end
+end
+local pageHost=create("Frame",{Name="SubTabPages",Position=UDim2.fromOffset(0,40),Size=UDim2.new(1,0,1,-40),BackgroundTransparency=1,ClipsDescendants=true,Parent=frame,})local indicatorTrack=create("Frame",{Name="SubTabScrollIndicatorTrack",AnchorPoint=Vector2.new(0.5,0),Position=UDim2.new(0.5,0,0,36),Size=UDim2.fromOffset(52,2),BackgroundColor3=Theme.Stroke,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=8,Parent=frame,})corner(indicatorTrack,UDim.new(1,0))local indicatorThumb=create("Frame",{Name="SubTabScrollIndicatorThumb",Size=UDim2.new(0,16,1,0),BackgroundColor3=Color3.fromHex("806B91"),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=9,Parent=indicatorTrack,})corner(indicatorThumb,UDim.new(1,0))local rootTab=self._rootTab or self
+local pages={}local handle=setmetatable({Name=opts.Name or "SubTabs",Window=self.Window,Frame=frame,Pages=pages,SelectedPage=nil,_rootTab=rootTab,_buttons={},_listeners={},},SubTabs)table.insert(handle._listeners,tabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateTabCanvas))local indicatorToken=0
+local trackFadeTween,thumbFadeTween
+local function showScrollIndicator()local maxX=math.max(0,strip.CanvasSize.X.Offset-strip.AbsoluteWindowSize.X)if maxX<=0 then
+indicatorTrack.Visible=false
+return
+end
+local progress=math.clamp(strip.CanvasPosition.X/maxX,0,1)indicatorThumb.Position=UDim2.fromOffset((52-16)*progress,0)indicatorTrack.Visible=true
+indicatorToken+=1
+local token=indicatorToken
+if trackFadeTween then trackFadeTween:Cancel()end
+if thumbFadeTween then thumbFadeTween:Cancel()end
+trackFadeTween,thumbFadeTween=nil,nil
+indicatorTrack.BackgroundTransparency=0.68
+indicatorThumb.BackgroundTransparency=0.28
+task.delay(0.65,function()if token~=indicatorToken or not indicatorTrack.Parent then return end
+trackFadeTween=tween(indicatorTrack,{BackgroundTransparency=1},0.22)thumbFadeTween=tween(indicatorThumb,{BackgroundTransparency=1},0.22)task.delay(0.23,function()if token==indicatorToken and indicatorTrack.Parent then
+indicatorTrack.Visible=false
+end
+end)end)end
+table.insert(handle._listeners,strip:GetPropertyChangedSignal("CanvasPosition"):Connect(showScrollIndicator))local stripTween,stripTweenTarget,stripTweenToken
+local function scrollStripTo(x,duration)local maxX=math.max(0,strip.CanvasSize.X.Offset-strip.AbsoluteWindowSize.X)stripTweenTarget=math.clamp(x,0,maxX)if stripTween then
+stripTween:Cancel()end
+stripTweenToken=(stripTweenToken or 0)+1
+local token=stripTweenToken
+stripTween=TweenService:Create(strip,TweenInfo.new(duration or 0.2,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),{CanvasPosition=Vector2.new(stripTweenTarget,0),})stripTween.Completed:Connect(function()if stripTweenToken==token then
+stripTween=nil
+stripTweenTarget=strip.CanvasPosition.X
+end
+end)stripTween:Play()end
+local blockedScrollFrames={}local function setOtherScrollingEnabled(enabled)if enabled then
+for scrollFrame,wasEnabled in pairs(blockedScrollFrames)do
+if scrollFrame.Parent then
+scrollFrame.ScrollingEnabled=wasEnabled
+end
+end
+table.clear(blockedScrollFrames)return
+end
+local gui=self.Window and self.Window.Gui
+if not gui then
+return
+end
+for _,descendant in ipairs(gui:GetDescendants())do
+if descendant:IsA("ScrollingFrame")and descendant~=strip and blockedScrollFrames[descendant]==nil then
+blockedScrollFrames[descendant]=descendant.ScrollingEnabled
+descendant.ScrollingEnabled=false
+end
+end
+end
+local function pointerOverStrip()local mouse=pointerPosition()local position=strip.AbsolutePosition
+local size=strip.AbsoluteSize
+return mouse.X>=position.X and mouse.X<=position.X+size.X and mouse.Y>=position.Y and mouse.Y<=position.Y+size.Y
+end
+local function updateWheelTarget(input)local overStrip=pointerOverStrip()setOtherScrollingEnabled(not overStrip)if input and input.UserInputType==Enum.UserInputType.MouseWheel and overStrip then
+local currentX=stripTween and stripTweenTarget or strip.CanvasPosition.X
+scrollStripTo(currentX-input.Position.Z*48,0.22)end
+end
+table.insert(handle._listeners,UserInputService.InputChanged:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.MouseWheel then
+updateWheelTarget(input)end
+end))table.insert(handle._listeners,function()setOtherScrollingEnabled(true)end)updateTabCanvas()local function selectPage(page,instant)if type(page)=="number" then
 page=pages[page]end
 if not page or page._subTabs~=handle then
 return false
@@ -517,6 +579,15 @@ gradient.Enabled=selected
 end
 tween(buttonData.Icon,{ImageColor3=selected and Color3.new(1,1,1)or Theme.Muted},instant and 0 or 0.15)end
 end
+end
+local buttonData=handle._buttons[page._subTabIndex]if buttonData then
+local left=buttonData.Frame.AbsolutePosition.X-strip.AbsolutePosition.X+strip.CanvasPosition.X
+local right=left+buttonData.Frame.AbsoluteSize.X
+local viewLeft=strip.CanvasPosition.X
+local viewRight=viewLeft+strip.AbsoluteWindowSize.X
+if left<viewLeft then
+scrollStripTo(left,0.2)elseif right>viewRight then
+scrollStripTo(math.max(0,right-strip.AbsoluteWindowSize.X),0.2)end
 end
 if changed and rootTab._emptyState then
 rootTab._emptyState.Visible=false
@@ -1584,6 +1655,95 @@ popupShadow:Destroy()end
 baseDestroy()end
 return element
 end
+function Tab:CategoryPicker(opts)opts=normalize(opts,{Title="Name",Description="Desc"})local categories=opts.Categories or opts.Options or{}local frame,frameStroke=card(self,"Frame",0,opts)frame.AutomaticSize=Enum.AutomaticSize.Y
+frame.ClipsDescendants=false
+hoverStroke(frame,frameStroke)local inset=frame:GetAttribute("JinHubFlatSectionElement")and 8 or 12
+padding(frame,inset,inset,8,8)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=frame,})local order=0
+if opts.Name or opts.Desc then
+local heading=create("Frame",{Name="CategoryPickerHeading",Size=UDim2.new(1,0,0,opts.Desc and 42 or 22),BackgroundTransparency=1,LayoutOrder=order,Parent=frame,})if opts.Name then
+label({Position=UDim2.fromOffset(0,0),Size=UDim2.new(1,0,0,20),Text=tostring(opts.Name),TextSize=16,FontFace=Fonts.SemiBold,Parent=heading,})end
+if opts.Desc then
+label({Position=UDim2.fromOffset(0,21),Size=UDim2.new(1,0,0,18),Text=tostring(opts.Desc),TextSize=13,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,Parent=heading,})end
+order+=1
+end
+local picker={Categories={},SelectedCategory=nil,_children={},_buttons={},_window=self.Window,}local selectedIndex
+local function resolveCategory(reference)if reference==nil then
+return nil
+end
+if type(reference)=="number" then
+return picker.Categories[reference]and reference or nil
+end
+for index,entry in ipairs(picker.Categories)do
+if entry.Name==tostring(reference)then
+return index
+end
+end
+return nil
+end
+local function renderCategory(animate)for index,entry in ipairs(picker.Categories)do
+local selected=selectedIndex==index
+entry.DropdownHolder.Visible=selected
+if not selected and entry.Dropdown and entry.Dropdown.SetOpen then
+entry.Dropdown:SetOpen(false)end
+if entry.Gradient then
+entry.Gradient.Enabled=selected
+end
+tween(entry.Button,{BackgroundColor3=selected and Theme.Accent or Theme.Surface3,BackgroundTransparency=selected and 0.08 or 0,},animate and 0.16 or 0)tween(entry.Stroke,{Color=selected and Theme.Accent or Theme.Stroke,Transparency=selected and 0.45 or 0,},animate and 0.16 or 0)tween(entry.Label,{TextColor3=selected and Color3.new(1,1,1)or Theme.Muted,},animate and 0.16 or 0)if entry.Icon then
+tween(entry.Icon,{ImageColor3=selected and Color3.new(1,1,1)or Theme.Accent,},animate and 0.16 or 0)end
+end
+picker.SelectedCategory=selectedIndex and picker.Categories[selectedIndex].Name or nil
+picker.Value={Category=picker.SelectedCategory,Item=selectedIndex and picker.Categories[selectedIndex].Dropdown:Get()or nil,}end
+local function setCategory(reference,silent)local index=resolveCategory(reference)selectedIndex=index
+renderCategory(true)if not silent then
+safeCall(opts.CategoryCallback,picker.SelectedCategory,index,index~=nil)end
+return picker
+end
+for index,categoryValue in ipairs(categories)do
+local category=type(categoryValue)=="table" and categoryValue or{Name=tostring(categoryValue)}local name=tostring(category.Name or category.Title or("Category "..index))order+=1
+local group=create("Frame",{Name="CategoryPickerItem",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,BorderSizePixel=0,LayoutOrder=order,Parent=frame,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,3),Parent=group,})local buttonHeight=math.clamp(tonumber(category.ButtonHeight or opts.ButtonHeight)or(TOUCH and 46 or 40),34,84)local button=create("TextButton",{Size=UDim2.new(1,0,0,buttonHeight),BackgroundColor3=Theme.Surface3,BorderSizePixel=0,AutoButtonColor=false,Text="",ClipsDescendants=true,LayoutOrder=1,Parent=group,})corner(button,UDim.new(0,9))local buttonStroke=stroke(button,Theme.Stroke,0)local gradient=create("UIGradient",{Name="JinHubCategoryPickerGradient",Color=JINHUB_PRIMARY_BUTTON_GRADIENT,Rotation=0,Enabled=false,Parent=button,})local iconValue=category.Icon
+local icon
+if iconValue then
+icon=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,12,0.5,0),Size=UDim2.fromOffset(math.clamp(tonumber(category.IconSize)or 22,14,32),math.clamp(tonumber(category.IconSize)or 22,14,32)),BackgroundTransparency=1,ImageColor3=Theme.Accent,ScaleType=Enum.ScaleType.Fit,Parent=button,})applyIcon(icon,iconValue)end
+local categoryLabel=label({Position=UDim2.new(0,icon and 44 or 10,0,0),Size=UDim2.new(1,icon and-54 or-20,1,0),Text=name,TextSize=tonumber(category.TextSize)or 14,FontFace=Fonts.SemiBold,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.AtEnd,TextXAlignment=Enum.TextXAlignment.Left,Parent=button,})local dropdownHolder=create("Frame",{Name="CategoryItemDropdown",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,BorderSizePixel=0,Visible=false,LayoutOrder=2,Parent=group,})local dropdownOptions={}for key,value in pairs(category.Dropdown or{})do
+dropdownOptions[key]=value
+end
+dropdownOptions.Name=dropdownOptions.Name or category.DropdownName or("Select "..name)dropdownOptions.Desc=dropdownOptions.Desc or category.Desc
+dropdownOptions.Options=category.Values or category.Items or category.Options or dropdownOptions.Options or{}dropdownOptions.Default=category.Default~=nil and category.Default or dropdownOptions.Default
+if dropdownOptions.Modern==nil then
+dropdownOptions.Modern=true
+end
+local categoryCallback=dropdownOptions.Callback or category.Callback
+dropdownOptions.Callback=function(value,...)safeCall(categoryCallback,value,...)picker.Value={Category=picker.SelectedCategory,Item=value}safeCall(opts.Callback,value,name,index)end
+local dropdownTab=setmetatable({Name=name,Window=self.Window,List=dropdownHolder,_order=0,_hstack=self._hstack,_rootTab=self._rootTab or self,_sectionOwner=self._sectionOwner,_flatElements=self._flatElements,_boxBorderElements=self._boxBorderElements,_compactElements=true,},Tab)local dropdown=dropdownTab:Dropdown(dropdownOptions)picker.Categories[index]={Name=name,Frame=group,Button=button,Label=categoryLabel,Icon=icon,Stroke=buttonStroke,Gradient=gradient,DropdownHolder=dropdownHolder,Dropdown=dropdown,Options=category,}table.insert(picker._children,dropdown)button.MouseEnter:Connect(function()if selectedIndex~=index then
+setHoverStrokeGradient(buttonStroke,true)tween(button,{BackgroundColor3=Theme.Surface2},0.12)tween(buttonStroke,{Color=Color3.new(1,1,1),Transparency=0.18},0.12)end
+end)button.MouseLeave:Connect(function()local selected=selectedIndex==index
+setHoverStrokeGradient(buttonStroke,false)tween(button,{BackgroundColor3=selected and Theme.Accent or Theme.Surface3,BackgroundTransparency=selected and 0.08 or 0,},0.16)tween(buttonStroke,{Color=selected and Theme.Accent or Theme.Stroke,Transparency=selected and 0.45 or 0,},0.16)end)button.Activated:Connect(function()if selectedIndex==index then
+setCategory(nil)else
+setCategory(index)end
+end)end
+local handle=picker
+function handle:SetCategory(reference,silent)return setCategory(reference,silent)end
+function handle:GetCategory()return self.SelectedCategory
+end
+function handle:GetValue(categoryReference)local index=resolveCategory(categoryReference)or selectedIndex
+local entry=index and self.Categories[index]return entry and entry.Dropdown:Get()or nil
+end
+function handle:SetValue(value,categoryReference,silent)local index=resolveCategory(categoryReference)or selectedIndex
+local entry=index and self.Categories[index]if entry then
+entry.Dropdown:Set(value,silent)self.Value={Category=entry.Name,Item=entry.Dropdown:Get()}end
+return self
+end
+function handle:Refresh(categoryReference,items,keepSelection)local index=resolveCategory(categoryReference)local entry=index and self.Categories[index]if entry then
+entry.Dropdown:Refresh(items,keepSelection)end
+return self
+end
+function handle:GetDropdown(categoryReference)local index=resolveCategory(categoryReference)or selectedIndex
+local entry=index and self.Categories[index]return entry and entry.Dropdown or nil
+end
+local defaultCategory=opts.DefaultCategory or(type(opts.Default)=="string" and opts.Default)if defaultCategory~=nil then
+setCategory(defaultCategory,true)else
+renderCategory(false)end
+return finishElement(self,opts,handle,frame,"CategoryPicker")end
 function Tab:Input(opts)opts=normalize(opts,{Title="Name",Description="Desc",InputIcon="Icon",PlaceholderText="Placeholder",CurrentValue="Default",Value="Default",})local textarea=opts.Type=="Textarea"
 local modern=opts.Modern==true or textarea
 local inputTop=opts.Desc and 44 or 26
