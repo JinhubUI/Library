@@ -1,4 +1,4 @@
---1
+--2
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -685,7 +685,7 @@ elseif typeof(opts.TextXAlignment)=="EnumItem" then
 textAlignment=opts.TextXAlignment
 end
 local title=label({Position=UDim2.new(0,titleLeft,0,0),Size=UDim2.new(1,-(titleLeft+44),1,0),Text=tostring(titleText),TextSize=opts.TextSize or 19,TextTransparency=opts.TextTransparency==nil and 0.05 or opts.TextTransparency,FontFace=titleFont,TextXAlignment=textAlignment,ZIndex=3,Parent=header,})local arrow=arrowIndicator(header,1,-14,true)arrow:Set(opened)local content=create("Frame",{Name="SectionContent",Position=UDim2.fromOffset(0,38),Size=UDim2.new(1,0,0,0),AutomaticSize=opened and Enum.AutomaticSize.Y or Enum.AutomaticSize.None,BackgroundTransparency=1,Visible=opened,Parent=holder,})local sidePadding=boxBorder and(boxed and 4 or 0)or 0.1
-padding(content,sidePadding,sidePadding,boxed and 1 or 0,boxed and 1 or 0)create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Window.NewElements and(boxBorderChildren and 2 or 0)or 2),Parent=content,})local hoverOutline
+padding(content,sidePadding,sidePadding,boxed and 1 or 0,boxed and 4 or 0)create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Window.NewElements and(boxBorderChildren and 2 or 0)or 2),Parent=content,})local hoverOutline
 local hoverOutlineStroke
 hoverOutline=create("Frame",{Name="SectionHoverOutline",Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,1,-2),BackgroundTransparency=1,BorderSizePixel=0,Active=false,ZIndex=20,Parent=holder,})corner(hoverOutline,UDim.new(0,8))hoverOutlineStroke=stroke(hoverOutline,Theme.StrokeHover,1,1)local section=setmetatable({Name=tostring(titleText),Window=self.Window,List=content,_order=0,_hstack=self._hstack,_rootTab=self._rootTab or self,_children={},_flatElements=flatChildren,_boxBorderElements=boxBorderChildren,_compactElements=true,},Tab)section._sectionOwner=section
 local hovered=false
@@ -1236,10 +1236,7 @@ and not inStack
 local options=opts.Options or{}local frame,frameStroke,height
 local stackedHeight
 if stacked then
-stackedHeight=(opts.Desc and(TOUCH and 92 or 84)or(TOUCH and 80 or 72))-(self._flatElements and 4 or 0)if opts.Desc and self._compactElements then
-stackedHeight+=4
-end
-end
+stackedHeight=(opts.Desc and(TOUCH and 92 or 84)or(TOUCH and 80 or 72))-(self._flatElements and 4 or 0)end
 opts,frame,frameStroke,height=beginElement(self,opts,{},"Frame",nil,nil,stackedHeight)frame.ClipsDescendants=false
 local stackedInset=frame:GetAttribute("JinHubFlatSectionElement")and 8 or 14
 local chipInset=frame:GetAttribute("JinHubFlatSectionElement")and 8 or 10
@@ -1250,7 +1247,7 @@ descLabel=label({Position=UDim2.fromOffset(stackedInset,23),Size=UDim2.new(1,-(s
 else
 titleLabel,descLabel=titleDesc(header,opts.Name or "Dropdown",opts.Desc,180)end
 local chip=create("Frame",{AnchorPoint=stacked and Vector2.new(0,0)or Vector2.new(1,0.5),Position=stacked
-and UDim2.new(0,chipInset,0,(opts.Desc and(TOUCH and 48 or 46)or(TOUCH and 33 or 29))-(frame:GetAttribute("JinHubFlatSectionElement")and 4 or 0)+4)or UDim2.new(1,-chipInset,0.5,0),Size=stacked and UDim2.new(1,-(chipInset*2),0,CHIP_HEIGHT)or UDim2.fromOffset(60,CHIP_HEIGHT),BackgroundColor3=Theme.Surface,BackgroundTransparency=0,BorderSizePixel=0,ClipsDescendants=true,Parent=header,})corner(chip,UDim.new(0,8))local chipStroke=stroke(chip,Theme.Stroke,0.18,1)create("Frame",{Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,0,1),BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=2,Parent=chip,})local valueLabel=label({Position=UDim2.fromOffset(10,0),Size=UDim2.new(1,-34,1,0),TextColor3=Theme.Text,TextSize=16,TextTruncate=Enum.TextTruncate.None,ClipsDescendants=true,Parent=chip,})local arrow=arrowIndicator(chip,1,-6)local measure=label({Size=UDim2.fromOffset(0,CHIP_HEIGHT),AutomaticSize=Enum.AutomaticSize.X,TextSize=16,Visible=false,Parent=chip,})local fullText=""
+and UDim2.new(0,chipInset,0,(opts.Desc and(TOUCH and 48 or 46)or(TOUCH and 33 or 29))-(frame:GetAttribute("JinHubFlatSectionElement")and 4 or 0))or UDim2.new(1,-chipInset,0.5,0),Size=stacked and UDim2.new(1,-(chipInset*2),0,CHIP_HEIGHT)or UDim2.fromOffset(60,CHIP_HEIGHT),BackgroundColor3=Theme.Surface,BackgroundTransparency=0,BorderSizePixel=0,ClipsDescendants=true,Parent=header,})corner(chip,UDim.new(0,8))local chipStroke=stroke(chip,Theme.Stroke,0.18,1)create("Frame",{Position=UDim2.fromOffset(1,1),Size=UDim2.new(1,-2,0,1),BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=2,Parent=chip,})local valueLabel=label({Position=UDim2.fromOffset(10,0),Size=UDim2.new(1,-34,1,0),TextColor3=Theme.Text,TextSize=16,TextTruncate=Enum.TextTruncate.None,ClipsDescendants=true,Parent=chip,})local arrow=arrowIndicator(chip,1,-6)local measure=label({Size=UDim2.fromOffset(0,CHIP_HEIGHT),AutomaticSize=Enum.AutomaticSize.X,TextSize=16,Visible=false,Parent=chip,})local fullText=""
 local function inlineChipMaxWidth()local renderedWidth=frame.AbsoluteSize.X
 if renderedWidth<=0 then
 return 190
