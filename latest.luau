@@ -1,6 +1,6 @@
---3
+--4
 
-local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
+local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local TextService=game:GetService("TextService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
 local function getPersistentWindowRegistry()local environment=_G
@@ -1905,7 +1905,9 @@ local box=create("TextBox",{Position=UDim2.fromOffset(boxIcon and 30 or 8,textar
 local function fitTextareaHeight()if not textarea or opts.AutoGrow~=true then
 return
 end
-local contentHeight=math.max(box.TextBounds.Y,box.TextSize)local nextInputHeight=math.max(148,math.ceil(contentHeight+16))if nextInputHeight==inputHeight then
+local contentHeight=math.max(box.TextBounds.Y,box.TextSize)local measured,bounds=pcall(function()return TextService:GetTextSize(box.Text,box.TextSize,box.Font,Vector2.new(math.max(box.AbsoluteSize.X,1),100000))end)if measured then
+contentHeight=math.max(contentHeight,bounds.Y)end
+local nextInputHeight=math.max(148,math.ceil(contentHeight+16))if nextInputHeight==inputHeight then
 return
 end
 local heightDelta=nextInputHeight-inputHeight
@@ -1934,7 +1936,7 @@ local width=math.clamp(measured+textInset+12,90,maxWidth)+(focused and 8 or 0)wi
 boxHolder.Size=UDim2.fromOffset(width,30)else
 tween(boxHolder,{Size=UDim2.fromOffset(width,30)},0.18)end
 end
-frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()fitBox(true)end)box:GetPropertyChangedSignal("Text"):Connect(function()handle.Value=box.Text
+frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()fitBox(true)task.defer(fitTextareaHeight)end)box:GetPropertyChangedSignal("Text"):Connect(function()handle.Value=box.Text
 fitBox(false)task.defer(fitTextareaHeight)end)box:GetPropertyChangedSignal("TextBounds"):Connect(function()fitBox(false)fitTextareaHeight()end)task.defer(fitBox,true)box.Focused:Connect(function()focused=true
 tween(boxStroke,{Color=Theme.StrokeHover},0.15)fitBox(false)end)box.FocusLost:Connect(function(enterPressed)focused=false
 tween(boxStroke,{Color=Theme.Stroke},0.15)fitBox(false)if opts.Numeric then
