@@ -1,4 +1,4 @@
---2
+--3
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -39,7 +39,7 @@ window._elements=window._elements or{}window._elements[element]=true
 end
 local lockable=kind=="Toggle" or kind=="Dropdown" or kind=="Input"
 or kind=="Slider" or kind=="Button" or kind=="ButtonPair"
-or kind=="CategoryPicker" or kind=="Paragraph"
+or kind=="CategoryPicker" or kind=="Paragraph" or kind=="ParagraphInput"
 if opts.Locked==true and lockable and frame and applyLocked then
 applyLocked(frame,window,opts.LockedTitle)end
 local sectionOwner=tab and tab._sectionOwner
@@ -969,6 +969,144 @@ end
 handle.ParagraphFrame=handle
 return element
 end
+function Tab:ParagraphInput(opts)opts=normalize(opts,{Title="Name",Description="Desc"})local compact=self._compactElements==true
+local horizontalPadding=compact and 10 or 14
+local verticalPadding=11
+local frame=card(self,"Frame",0,opts)frame.AutomaticSize=Enum.AutomaticSize.Y
+frame.ClipsDescendants=true
+padding(frame,horizontalPadding,horizontalPadding,compact and 0 or verticalPadding,verticalPadding)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,compact and 5 or 7),Parent=frame,})local titleText=tostring(opts.Name or "")local heading
+if titleText~="" or(opts.Desc and tostring(opts.Desc)~="")then
+heading=create("Frame",{Name="ParagraphInputHeading",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,BorderSizePixel=0,LayoutOrder=1,Parent=frame,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,compact and 0 or 2),Parent=heading,})if titleText~="" then
+label({Name="ParagraphInputTitle",Size=UDim2.new(1,0,0,18),Text=titleText,TextSize=17,FontFace=Fonts.SemiBold,Parent=heading,})end
+if opts.Desc and tostring(opts.Desc)~="" then
+label({Name="ParagraphInputDescription",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(opts.Desc),TextSize=13,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,Parent=heading,})end
+end
+local rowsHolder=create("Frame",{Name="ParagraphInputRows",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,BorderSizePixel=0,LayoutOrder=2,Parent=frame,})local rowsLayout=create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,compact and 3 or 6),Parent=rowsHolder,})local function normalizeRows(rows)local normalized={}local hasOpenRow=false
+for index,value in ipairs(type(rows)=="table" and rows or{})do
+local row=type(value)=="table" and value or{Name=tostring(value)}local inputs=row.Inputs or row.Values
+local isOpen=row.Open==true and not hasOpenRow
+if isOpen then
+hasOpenRow=true
+end
+normalized[index]={Name=tostring(row.Name or row.Title or row.Text or row.Content or("Item "..index)),First=tostring(row.First~=nil and row.First or row.Value~=nil and row.Value
+or type(inputs)=="table" and(inputs.First or inputs[1])or ""),Second=tostring(row.Second~=nil and row.Second
+or type(inputs)=="table" and(inputs.Second or inputs[2])or ""),Open=isOpen,}end
+return normalized
+end
+local count=math.clamp(math.floor(tonumber(opts.InputCount)or 1),1,2)local handle={Rows=normalizeRows(opts.Rows or opts.Items),InputCount=count,Locked=opts.Locked==true,}local renderedRows={}local renderedDivider
+local rowInputs={}local rowArrows={}local function cloneRows()local copy={}for index,row in ipairs(handle.Rows)do
+copy[index]={Name=row.Name,First=row.First,Second=row.Second,Inputs={row.First,row.Second},Open=row.Open,}end
+return copy
+end
+function handle:Get()return cloneRows()end
+local function notifyChange(rowName,inputName)safeCall(opts.Callback,cloneRows(),rowName,inputName)end
+local setRowOpen
+local function renderRows()for _,rowFrame in ipairs(renderedRows)do
+rowFrame:Destroy()end
+if renderedDivider then
+renderedDivider:Destroy()renderedDivider=nil
+end
+table.clear(renderedRows)table.clear(rowInputs)table.clear(rowArrows)for index,rowData in ipairs(handle.Rows)do
+local item=create("Frame",{Name="ParagraphInputRow",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,BorderSizePixel=0,LayoutOrder=index,Parent=rowsHolder,})table.insert(renderedRows,item)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,3),Parent=item,})local header=create("TextButton",{Name="ParagraphInputItemHeader",Size=UDim2.new(1,0,0,compact and 22 or 26),BackgroundTransparency=1,BorderSizePixel=0,AutoButtonColor=false,Text="",LayoutOrder=1,Parent=item,})local itemTitle=label({Name="ParagraphInputItemTitle",Position=UDim2.fromOffset(24,0),Size=UDim2.new(1,-28,1,0),Text=rowData.Name,TextSize=15,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=false,TextTruncate=Enum.TextTruncate.AtEnd,Parent=header,})local arrow=arrowIndicator(header,0,2)rowArrows[index]=arrow
+arrow:Set(rowData.Open)local expanded=create("Frame",{Name="ParagraphInputExpanded",Size=UDim2.new(1,0,0,28),BackgroundTransparency=1,BorderSizePixel=0,Visible=rowData.Open,LayoutOrder=2,Parent=item,})create("Frame",{Name="ParagraphInputGuide",Position=UDim2.fromOffset(11,0),Size=UDim2.new(0,1,1,0),BackgroundColor3=Theme.Stroke,BorderSizePixel=0,Parent=expanded,})local fields=create("Frame",{Name="ParagraphInputFields",Position=UDim2.fromOffset(20,2),Size=UDim2.new(1,-20,0,24),BackgroundTransparency=1,BorderSizePixel=0,Parent=expanded,})create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,SortOrder=Enum.SortOrder.LayoutOrder,VerticalAlignment=Enum.VerticalAlignment.Center,Padding=UDim.new(0,5),Parent=fields,})rowInputs[index]={}for fieldIndex=1,handle.InputCount do
+local fieldName=fieldIndex==1 and "First" or "Second"
+local holder=create("Frame",{Name="ParagraphInputField",Size=UDim2.new(1/handle.InputCount,handle.InputCount==2 and-3 or 0,0,24),BackgroundColor3=Theme.Surface,BorderSizePixel=0,ClipsDescendants=true,LayoutOrder=fieldIndex,Parent=fields,})corner(holder,UDim.new(0,6))local holderStroke=stroke(holder,Theme.Stroke,0.12)local placeholders=opts.Placeholders
+local placeholder=type(placeholders)=="table" and placeholders[fieldIndex]or nil
+placeholder=placeholder or(fieldIndex==1 and opts.FirstPlaceholder or opts.SecondPlaceholder)or opts.Placeholder or ""
+local box=create("TextBox",{Position=UDim2.fromOffset(6,0),Size=UDim2.new(1,-12,1,0),BackgroundTransparency=1,Text=rowData[fieldName],PlaceholderText=tostring(placeholder),PlaceholderColor3=Theme.Muted,TextColor3=Theme.Text,TextSize=14,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=opts.ClearTextOnFocus==true,TextTruncate=Enum.TextTruncate.None,ClipsDescendants=true,Parent=holder,})rowInputs[index][fieldName]=box
+box:GetPropertyChangedSignal("Text"):Connect(function()if handle.Rows[index]then
+handle.Rows[index][fieldName]=box.Text
+end
+end)box.Focused:Connect(function()tween(holderStroke,{Color=Theme.StrokeHover},0.14)end)box.FocusLost:Connect(function()tween(holderStroke,{Color=Theme.Stroke},0.14)if opts.Numeric and box.Text~="" and tonumber(box.Text)==nil then
+box.Text=""
+end
+if handle.Rows[index]then
+handle.Rows[index][fieldName]=box.Text
+notifyChange(rowData.Name,fieldName)end
+end)end
+header.Activated:Connect(function()setRowOpen(index,not rowData.Open)end)end
+if #handle.Rows>0 then
+renderedDivider=create("Frame",{Name="ParagraphInputDivider",Size=UDim2.new(1,0,0,4),BackgroundTransparency=1,BorderSizePixel=0,LayoutOrder=#handle.Rows+1,Parent=rowsHolder,})create("Frame",{Name="Line",Position=UDim2.fromOffset(-horizontalPadding,3),Size=UDim2.new(1,horizontalPadding*2,0,1),BackgroundColor3=Theme.Stroke,BorderSizePixel=0,Parent=renderedDivider,})end
+end
+setRowOpen=function(index,open)local row=handle.Rows[index]if not row then
+return
+end
+if open then
+for otherIndex,otherRow in ipairs(handle.Rows)do
+if otherIndex~=index and otherRow.Open then
+otherRow.Open=false
+local otherItem=renderedRows[otherIndex]local otherExpanded=otherItem and otherItem:FindFirstChild("ParagraphInputExpanded")if otherExpanded then
+otherExpanded.Visible=false
+end
+if rowArrows[otherIndex]then
+rowArrows[otherIndex]:Set(false)end
+end
+end
+end
+row.Open=open==true
+local item=renderedRows[index]local expanded=item and item:FindFirstChild("ParagraphInputExpanded")if expanded then
+expanded.Visible=row.Open
+end
+if rowArrows[index]then
+rowArrows[index]:Set(row.Open)end
+end
+function handle:SetRows(rows,silent)handle.Rows=normalizeRows(rows)opts.Rows=handle.Rows
+renderRows()if not silent then
+notifyChange(nil,nil)end
+return handle
+end
+function handle:Set(rows,silent)return handle:SetRows(rows,silent)end
+function handle:AddRow(row,silent)local rows=cloneRows()table.insert(rows,row)return handle:SetRows(rows,silent)end
+function handle:Clear(silent)return handle:SetRows({},silent)end
+function handle:SetInputCount(value,silent)local newCount=math.clamp(math.floor(tonumber(value)or 1),1,2)if newCount==handle.InputCount then
+return handle
+end
+handle.InputCount=newCount
+renderRows()if not silent then
+notifyChange(nil,nil)end
+return handle
+end
+function handle:GetInputCount()return handle.InputCount
+end
+function handle:SetOpen(rowReference,open)local rowIndex=type(rowReference)=="number" and rowReference or nil
+if not rowIndex then
+for index,row in ipairs(handle.Rows)do
+if row.Name==tostring(rowReference)then
+rowIndex=index
+break
+end
+end
+end
+local row=rowIndex and handle.Rows[rowIndex]local item=rowIndex and renderedRows[rowIndex]if not row or not item then
+return handle
+end
+setRowOpen(rowIndex,open==nil and not row.Open or open==true)return handle
+end
+function handle:SetInput(rowReference,fieldReference,value,silent)local rowIndex=type(rowReference)=="number" and rowReference or nil
+if not rowIndex then
+for index,row in ipairs(handle.Rows)do
+if row.Name==tostring(rowReference)then
+rowIndex=index
+break
+end
+end
+end
+local fieldName
+if fieldReference==2 or tostring(fieldReference):lower()=="second" then
+fieldName="Second"
+else
+fieldName="First"
+end
+local rowData=rowIndex and handle.Rows[rowIndex]if not rowData then
+return handle
+end
+rowData[fieldName]=tostring(value or "")local box=rowInputs[rowIndex]and rowInputs[rowIndex][fieldName]if box then
+box.Text=rowData[fieldName]end
+if not silent then
+notifyChange(rowData.Name,fieldName)end
+return handle
+end
+renderRows()return finishElement(self,opts,handle,frame,"ParagraphInput")end
 function Tab:Button(opts)opts=normalize(opts,{Title="Name",Description="Desc"})local primary=opts.Style=="Primary"
 local height=opts.Desc and CARD_HEIGHT_DESC or CARD_HEIGHT
 if opts.Desc and self._compactElements then
@@ -1764,6 +1902,15 @@ local boxHolder=create("Frame",{AnchorPoint=modern and Vector2.zero or Vector2.n
 if boxIcon then
 glowIcon(boxHolder,boxIcon,Theme.Muted,UDim2.new(0,8,0.5,0))end
 local box=create("TextBox",{Position=UDim2.fromOffset(boxIcon and 30 or 8,textarea and 8 or 0),Size=UDim2.new(1,boxIcon and-38 or-16,1,textarea and-16 or 0),BackgroundTransparency=1,Text=tostring(opts.Default or ""),PlaceholderText=opts.Placeholder or "",PlaceholderColor3=Theme.Muted,TextColor3=Theme.Text,TextSize=15,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=textarea and Enum.TextYAlignment.Top or Enum.TextYAlignment.Center,TextWrapped=textarea,MultiLine=textarea,ClearTextOnFocus=opts.ClearTextOnFocus==true,TextTruncate=Enum.TextTruncate.None,ClipsDescendants=true,Parent=boxHolder,})boxHolder.ClipsDescendants=true
+local function fitTextareaHeight()if not textarea or opts.AutoGrow~=true then
+return
+end
+local contentHeight=math.max(box.TextBounds.Y,box.TextSize)local nextInputHeight=math.max(148,math.ceil(contentHeight+16))if nextInputHeight==inputHeight then
+return
+end
+local heightDelta=nextInputHeight-inputHeight
+inputHeight=nextInputHeight
+boxHolder.Size=UDim2.new(1,-(inset*2),0,inputHeight)frame.Size=UDim2.new(frame.Size.X.Scale,frame.Size.X.Offset,0,frame.Size.Y.Offset+heightDelta)end
 local focused=false
 local handle={Value=box.Text,Placeholder=box.PlaceholderText,Locked=opts.Locked==true,}local textInset=(boxIcon and 30 or 8)+8
 local function inlineInputMaxWidth()local renderedWidth=frame.AbsoluteSize.X
@@ -1788,7 +1935,7 @@ boxHolder.Size=UDim2.fromOffset(width,30)else
 tween(boxHolder,{Size=UDim2.fromOffset(width,30)},0.18)end
 end
 frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()fitBox(true)end)box:GetPropertyChangedSignal("Text"):Connect(function()handle.Value=box.Text
-fitBox(false)end)box:GetPropertyChangedSignal("TextBounds"):Connect(function()fitBox(false)end)task.defer(fitBox,true)box.Focused:Connect(function()focused=true
+fitBox(false)task.defer(fitTextareaHeight)end)box:GetPropertyChangedSignal("TextBounds"):Connect(function()fitBox(false)fitTextareaHeight()end)task.defer(fitBox,true)box.Focused:Connect(function()focused=true
 tween(boxStroke,{Color=Theme.StrokeHover},0.15)fitBox(false)end)box.FocusLost:Connect(function(enterPressed)focused=false
 tween(boxStroke,{Color=Theme.Stroke},0.15)fitBox(false)if opts.Numeric then
 local number=tonumber(box.Text)if not number then
