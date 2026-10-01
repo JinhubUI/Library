@@ -1,4 +1,4 @@
---4
+--5
 
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local TextService=game:GetService("TextService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
@@ -379,15 +379,24 @@ if #ripplePool<4 then
 table.insert(ripplePool,circle)else
 circle:Destroy()end
 end)end
-local function flashStroke(strokeObject)if not strokeObject then
+local flashStrokeStates=setmetatable({},{__mode="k"})local function flashStroke(strokeObject)if not strokeObject then
 return
 end
 if strokeObject.Parent and strokeObject.Parent:GetAttribute("JinHubFlatSectionElement")and not strokeObject.Parent:GetAttribute("JinHubNewElements")then
 return
 end
-local baseTransparency=strokeObject.Transparency
-local baseColor=strokeObject.Color
-tween(strokeObject,{Color=Theme.Accent,Transparency=0.2},0.08)task.delay(0.12,function()tween(strokeObject,{Color=baseColor,Transparency=baseTransparency},0.35)end)end
+local state=flashStrokeStates[strokeObject]if not state then
+state={BaseTransparency=strokeObject.Transparency,BaseColor=strokeObject.Color,Token=0,}flashStrokeStates[strokeObject]=state
+end
+state.Token+=1
+local token=state.Token
+tween(strokeObject,{Color=Theme.Accent,Transparency=0.2},0.08)task.delay(0.12,function()if not strokeObject.Parent or flashStrokeStates[strokeObject]~=state or state.Token~=token then
+return
+end
+tween(strokeObject,{Color=state.BaseColor,Transparency=state.BaseTransparency},0.35)task.delay(0.36,function()if flashStrokeStates[strokeObject]==state and state.Token==token then
+flashStrokeStates[strokeObject]=nil
+end
+end)end)end
 local function setHoverStrokeGradient(strokeObject,enabled)if not strokeObject then
 return
 end
@@ -1905,9 +1914,16 @@ local box=create("TextBox",{Position=UDim2.fromOffset(boxIcon and 30 or 8,textar
 local function fitTextareaHeight()if not textarea or opts.AutoGrow~=true then
 return
 end
-local contentHeight=math.max(box.TextBounds.Y,box.TextSize)local measured,bounds=pcall(function()return TextService:GetTextSize(box.Text,box.TextSize,box.Font,Vector2.new(math.max(box.AbsoluteSize.X,1),100000))end)if measured then
-contentHeight=math.max(contentHeight,bounds.Y)end
-local nextInputHeight=math.max(148,math.ceil(contentHeight+16))if nextInputHeight==inputHeight then
+local contentHeight=0
+local textWidth=math.max(box.AbsoluteSize.X,1)for line in(box.Text.."\n"):gmatch("(.-)\n")do
+local lineHeight=box.TextSize
+if line~="" then
+local measured,bounds=pcall(function()return TextService:GetTextSize(line,box.TextSize,box.Font,Vector2.new(textWidth,100000))end)if measured then
+lineHeight=math.max(lineHeight,bounds.Y)end
+end
+contentHeight+=lineHeight
+end
+contentHeight=math.max(contentHeight,box.TextSize)local nextInputHeight=math.max(148,math.ceil(contentHeight+16))if nextInputHeight==inputHeight then
 return
 end
 local heightDelta=nextInputHeight-inputHeight
@@ -1936,6 +1952,22 @@ local width=math.clamp(measured+textInset+12,90,maxWidth)+(focused and 8 or 0)wi
 boxHolder.Size=UDim2.fromOffset(width,30)else
 tween(boxHolder,{Size=UDim2.fromOffset(width,30)},0.18)end
 end
+local function hasAddedTextareaLine(previousText,nextText)local previousNames={}for line in(previousText.."\n"):gmatch("(.-)\n")do
+if line~="" then
+local name=line:match("^%s*(.-)%s*=%s*")or line
+previousNames[name]=true
+end
+end
+for line in(nextText.."\n"):gmatch("(.-)\n")do
+if line~="" then
+local name=line:match("^%s*(.-)%s*=%s*")or line
+if not previousNames[name]then
+return true
+end
+end
+end
+return false
+end
 frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()fitBox(true)task.defer(fitTextareaHeight)end)box:GetPropertyChangedSignal("Text"):Connect(function()handle.Value=box.Text
 fitBox(false)task.defer(fitTextareaHeight)end)box:GetPropertyChangedSignal("TextBounds"):Connect(function()fitBox(false)fitTextareaHeight()end)task.defer(fitBox,true)box.Focused:Connect(function()focused=true
 tween(boxStroke,{Color=Theme.StrokeHover},0.15)fitBox(false)end)box.FocusLost:Connect(function(enterPressed)focused=false
@@ -1955,9 +1987,13 @@ box.Text=""
 handle.Value=""
 return
 end
+local shouldFlash=not(textarea and opts.AutoGrow==true)if not shouldFlash then
+shouldFlash=hasAddedTextareaLine(box.Text,text)end
 box.Text=text
 handle.Value=text
-flashStroke(frameStroke)if not silent then
+task.defer(fitTextareaHeight)if shouldFlash then
+flashStroke(frameStroke)end
+if not silent then
 safeCall(opts.Callback,text)end
 end
 function handle:Get()return box.Text
