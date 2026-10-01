@@ -1,3 +1,5 @@
+--1
+
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local TextService=game:GetService("TextService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
@@ -1378,7 +1380,32 @@ local inStack=self._hstack~=nil
 local compactTouchPopup=UserInputService.TouchEnabled
 and not stacked
 and not inStack
-local options=opts.Options or{}local frame,frameStroke,height
+local options=opts.Options or{}local function optionValue(option)if type(option)=="table" and option.Value~=nil then
+return option.Value
+end
+return option
+end
+local function optionLabel(option)if type(option)=="table" and option.Value~=nil then
+return tostring(option.Label or option.Name or option.Text or option.Value)end
+return tostring(option)end
+local function resolveOptionValue(value)for _,option in ipairs(options)do
+local candidateValue=optionValue(option)if candidateValue==value then
+return candidateValue
+end
+end
+for _,option in ipairs(options)do
+if optionLabel(option)==tostring(value)then
+return optionValue(option)end
+end
+local legacyLabel=tostring(value):gsub(" #%d+$","")if legacyLabel~=tostring(value)then
+for _,option in ipairs(options)do
+if optionLabel(option)==legacyLabel then
+return optionValue(option)end
+end
+end
+return value
+end
+local frame,frameStroke,height
 local stackedHeight
 if stacked then
 stackedHeight=(opts.Desc and(TOUCH and 92 or 84)or(TOUCH and 80 or 72))-(self._flatElements and 4 or 0)end
@@ -1459,45 +1486,49 @@ end
 button.MouseEnter:Connect(function()tween(button,{BackgroundColor3=primary and Color3.fromRGB(245,224,250)or Theme.Surface3:Lerp(Theme.Text,0.08),BackgroundTransparency=0,TextColor3=primary and Theme.AccentDark or Theme.Text,},0.12,Enum.EasingStyle.Sine,Enum.EasingDirection.Out)end)button.MouseLeave:Connect(function()tween(button,{BackgroundColor3=primary and Theme.Accent or Theme.Surface3,BackgroundTransparency=0,TextColor3=primary and Theme.AccentDark or Theme.Muted,},0.12,Enum.EasingStyle.Sine,Enum.EasingDirection.Out)end)return button
 end
 local selectAllButton=makeSelectAction("SelectAllButton","Select All",UDim2.new(0,0,0,0),UDim2.new(0.31,-1,1,0),false,"left")local unselectAllButton=makeSelectAction("UnselectAllButton","Unselect All",UDim2.new(0.31,1,0,0),UDim2.new(0.43,-2,1,0),false,nil)local doneButton=makeSelectAction("DoneButton","Done",UDim2.new(0.74,1,0,0),UDim2.new(0.26,-1,1,0),true,"right")selectAllButton.MouseButton1Click:Connect(function()selected={}for _,option in ipairs(options)do
-selected[option]=true
+selected[optionValue(option)]=true
 end
 renderValueLabel()flashStroke(frameStroke)safeCall(opts.Callback,currentValue())end)unselectAllButton.MouseButton1Click:Connect(function()selected={}renderValueLabel()flashStroke(frameStroke)safeCall(opts.Callback,currentValue())end)doneButton.MouseButton1Click:Connect(function()setOpen(false)end)end
-local optionScroller=create("ScrollingFrame",{Position=UDim2.fromOffset(10,optionScrollerTop),Size=UDim2.new(1,-24,1,-(optionScrollerTop+optionScrollerBottomReserve)),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=TOUCH and 4 or 3,ScrollBarImageColor3=Theme.Accent,ScrollBarImageTransparency=0.08,CanvasSize=UDim2.new(),AutomaticCanvasSize=Enum.AutomaticSize.Y,ScrollingDirection=Enum.ScrollingDirection.Y,ZIndex=1001,Parent=popup,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,OPTION_GAP),Parent=optionScroller,})local function matches(option)return filter=="" or string.find(string.lower(tostring(option)),filter,1,true)~=nil
+local optionScroller=create("ScrollingFrame",{Position=UDim2.fromOffset(10,optionScrollerTop),Size=UDim2.new(1,-24,1,-(optionScrollerTop+optionScrollerBottomReserve)),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=TOUCH and 4 or 3,ScrollBarImageColor3=Theme.Accent,ScrollBarImageTransparency=0.08,CanvasSize=UDim2.new(),AutomaticCanvasSize=Enum.AutomaticSize.Y,ScrollingDirection=Enum.ScrollingDirection.Y,ZIndex=1001,Parent=popup,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,OPTION_GAP),Parent=optionScroller,})local function matches(option)return filter=="" or string.find(string.lower(optionLabel(option)),filter,1,true)~=nil
 end
 if multi then
 for _,value in ipairs(opts.Default or{})do
-selected[value]=true
+selected[resolveOptionValue(value)]=true
 end
 elseif opts.Default~=nil then
-selected[opts.Default]=true
+selected[resolveOptionValue(opts.Default)]=true
 end
 currentValue=function()if multi then
 local list={}for _,option in ipairs(options)do
-if selected[option]then
-table.insert(list,option)end
+local value=optionValue(option)if selected[value]then
+table.insert(list,value)end
 end
 return list
 end
 for _,option in ipairs(options)do
-if selected[option]then
-return option
+local value=optionValue(option)if selected[value]then
+return value
 end
 end
 return nil
 end
-renderValueLabel=function()local value=currentValue()local isEmpty
-if multi then
-isEmpty=#value==0
-if #value==1 then
-local onlyValue=tostring(value[1])isEmpty=onlyValue:match("^%s*$")~=nil or string.lower(onlyValue)=="none"
+renderValueLabel=function()local displayValues={}for _,option in ipairs(options)do
+if selected[optionValue(option)]then
+table.insert(displayValues,optionLabel(option))end
 end
-fullText=isEmpty and "--" or table.concat(value,", ")else
-local text=value~=nil and tostring(value)or ""
+local isEmpty
+if multi then
+isEmpty=#displayValues==0
+if #displayValues==1 then
+local onlyValue=displayValues[1]isEmpty=onlyValue:match("^%s*$")~=nil or string.lower(onlyValue)=="none"
+end
+fullText=isEmpty and "--" or table.concat(displayValues,", ")else
+local text=displayValues[1]or ""
 isEmpty=text:match("^%s*$")~=nil or string.lower(text)=="none"
 fullText=isEmpty and "--" or text
 end
-valueLabel.Text=trimmed()valueLabel.TextColor3=isEmpty and Theme.Muted or Theme.Text:Lerp(Theme.Muted,0.4)for option,button in pairs(optionButtons)do
-local on=selected[option]==true
+valueLabel.Text=trimmed()valueLabel.TextColor3=isEmpty and Theme.Muted or Theme.Text:Lerp(Theme.Muted,0.4)for _,button in pairs(optionButtons)do
+local on=selected[button.Value]==true
 if button.On~=on then
 button.On=on
 tween(button.Label,{TextColor3=on and Theme.Text or OPTION_TEXT_COLOR},0.10,Enum.EasingStyle.Quint)tween(button.Label,{Position=UDim2.fromOffset(on and 22 or 13,-1),Size=UDim2.new(1,on and-47 or-38,1,0),},0.12,Enum.EasingStyle.Quint)tween(button.Check,{ImageTransparency=on and 0 or 1},0.10,Enum.EasingStyle.Quint)tween(button.CheckScale,{Scale=on and 1 or 0.82},0.12,Enum.EasingStyle.Quint)tween(button.SelectionBar,{BackgroundTransparency=on and 0 or 1},0.10,Enum.EasingStyle.Quint)end
@@ -1511,8 +1542,8 @@ end
 end
 return count
 end
-local function applyFilter()for option,button in pairs(optionButtons)do
-button.Frame.Visible=matches(option)end
+local function applyFilter()for _,button in pairs(optionButtons)do
+button.Frame.Visible=matches(button.SearchText)end
 end
 local function popupHeight()local rows=math.clamp(visibleCount(),1,6)local actionsHeight=showSelectAll and(SELECT_ACTION_HEIGHT+SELECT_ACTION_GAP)or 0
 local contentHeight=10+SEARCH_HEIGHT+8+rows*DROPDOWN_OPTION_HEIGHT+math.max(0,rows-1)*OPTION_GAP+actionsHeight+10
@@ -1664,47 +1695,58 @@ finishClose()end
 end
 end
 local function buildOptions()local keep={}for index,option in ipairs(options)do
-keep[option]=index
+keep[optionValue(option)]=index
 end
-for option,button in pairs(optionButtons)do
-if not keep[option]then
-button.Frame:Destroy()optionButtons[option]=nil
+for value,button in pairs(optionButtons)do
+if not keep[value]then
+button.Frame:Destroy()optionButtons[value]=nil
 end
 end
 for index,option in ipairs(options)do
-local existing=optionButtons[option]if existing then
+local value=optionValue(option)local textValue=optionLabel(option)local existing=optionButtons[value]if existing then
 existing.Frame.LayoutOrder=index
+existing.SearchText=textValue
+existing.Label.Text=textValue
 continue
 end
-local button=create("TextButton",{Size=UDim2.new(1,0,0,DROPDOWN_OPTION_HEIGHT),BackgroundColor3=Color3.fromRGB(63,42,76),BackgroundTransparency=1,Text="",AutoButtonColor=false,LayoutOrder=index,ZIndex=1002,Parent=optionScroller,})local check=create("ImageLabel",{AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-10,0.5,0),Size=UDim2.fromOffset(15,15),BackgroundTransparency=1,ImageColor3=Theme.Accent,ImageTransparency=1,ScaleType=Enum.ScaleType.Fit,ZIndex=1004,Parent=button,})applyIcon(check,"check")local checkScale=create("UIScale",{Scale=0.82,Parent=check})local selectionBar=create("Frame",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,1,0.5,0),Size=UDim2.new(0,3,0.62,0),BackgroundColor3=Theme.Accent,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=1004,Parent=button,})corner(selectionBar,UDim.new(1,0))local text_=label({Position=UDim2.fromOffset(13,-1),Size=UDim2.new(1,-38,1,0),Text=tostring(option),TextSize=POPUP_TEXT_SIZE,TextColor3=OPTION_TEXT_COLOR,FontFace=Fonts.Medium,ZIndex=1004,Parent=button,})button.MouseEnter:Connect(function()if not selected[option]then
+local button=create("TextButton",{Size=UDim2.new(1,0,0,DROPDOWN_OPTION_HEIGHT),BackgroundColor3=Color3.fromRGB(63,42,76),BackgroundTransparency=1,Text="",AutoButtonColor=false,LayoutOrder=index,ZIndex=1002,Parent=optionScroller,})local check=create("ImageLabel",{AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-10,0.5,0),Size=UDim2.fromOffset(15,15),BackgroundTransparency=1,ImageColor3=Theme.Accent,ImageTransparency=1,ScaleType=Enum.ScaleType.Fit,ZIndex=1004,Parent=button,})applyIcon(check,"check")local checkScale=create("UIScale",{Scale=0.82,Parent=check})local selectionBar=create("Frame",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,1,0.5,0),Size=UDim2.new(0,3,0.62,0),BackgroundColor3=Theme.Accent,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=1004,Parent=button,})corner(selectionBar,UDim.new(1,0))local text_=label({Position=UDim2.fromOffset(13,-1),Size=UDim2.new(1,-38,1,0),Text=textValue,TextSize=POPUP_TEXT_SIZE,TextColor3=OPTION_TEXT_COLOR,FontFace=Fonts.Medium,ZIndex=1004,Parent=button,})button.MouseEnter:Connect(function()if not selected[value]then
 tween(text_,{TextColor3=Theme.Text},0.08,Enum.EasingStyle.Quint)end
-end)button.MouseLeave:Connect(function()local on=selected[option]==true
-tween(text_,{TextColor3=on and Theme.Text or OPTION_TEXT_COLOR},0.10,Enum.EasingStyle.Quint)end)button.MouseButton1Click:Connect(function()if selected[option]then
-selected[option]=nil
+end)button.MouseLeave:Connect(function()local on=selected[value]==true
+tween(text_,{TextColor3=on and Theme.Text or OPTION_TEXT_COLOR},0.10,Enum.EasingStyle.Quint)end)button.MouseButton1Click:Connect(function()if selected[value]then
+selected[value]=nil
 else
 if not multi then
 selected={}end
-selected[option]=true
+selected[value]=true
 end
-renderValueLabel()safeCall(opts.Callback,currentValue())if not multi and selected[option]then
+renderValueLabel()safeCall(opts.Callback,currentValue())if not multi and selected[value]then
 setOpen(false)end
-end)optionButtons[option]={Frame=button,Label=text_,Check=check,CheckScale=checkScale,SelectionBar=selectionBar,On=nil}end
+end)optionButtons[value]={Frame=button,Label=text_,SearchText=textValue,Value=value,Check=check,CheckScale=checkScale,SelectionBar=selectionBar,On=nil,}end
 applyFilter()if self_.Open then
 positionPopup()end
 end
 function self_:Set(value,silent)selected={}if multi then
 for _,item in ipairs(type(value)=="table" and value or{value})do
-selected[item]=true
+selected[resolveOptionValue(item)]=true
 end
 elseif value~=nil then
-selected[value]=true
+selected[resolveOptionValue(value)]=true
 end
 renderValueLabel()flashStroke(frameStroke)if not silent then
 safeCall(opts.Callback,currentValue())end
 end
 function self_:Get()return currentValue()end
 function self_:Refresh(newOptions,keepSelection)options=newOptions or{}if not keepSelection then
-selected={}end
+selected={}else
+local valid={}for _,option in ipairs(options)do
+valid[optionValue(option)]=true
+end
+for value in pairs(selected)do
+if not valid[value]then
+selected[value]=nil
+end
+end
+end
 buildOptions()renderValueLabel()end
 function self_:SetOpen(open)setOpen(open==true)end
 header.MouseButton1Click:Connect(function()setOpen(not self_.Open)end)searchBox:GetPropertyChangedSignal("Text"):Connect(function()filter=string.lower(searchBox.Text)applyFilter()if self_.Open then
