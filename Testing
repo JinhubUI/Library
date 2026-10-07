@@ -1,4 +1,4 @@
-
+--1
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local TextService=game:GetService("TextService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
@@ -839,7 +839,42 @@ local richText=opts.RichText~=false
 if item.RichText~=nil then
 richText=item.RichText==true
 end
-label({Position=UDim2.fromOffset(hasIcon and((row:GetAttribute("ParagraphItemIconWidth")or iconSize)+8)or 0,0),Size=UDim2.new(1,hasIcon and-((row:GetAttribute("ParagraphItemIconWidth")or iconSize)+8)or 0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(textValue),TextSize=tonumber(item.TextSize)or(sizePreset=="large" and 16 or sizePreset=="small" and 14 or 15),FontFace=Fonts.Regular,TextColor3=resolveColor(item.Color)or Theme.Muted,RichText=richText,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,Parent=row,})table.insert(itemRows,row)end
+label({Position=UDim2.fromOffset(hasIcon and((row:GetAttribute("ParagraphItemIconWidth")or iconSize)+8)or 0,0),Size=UDim2.new(1,hasIcon and-((row:GetAttribute("ParagraphItemIconWidth")or iconSize)+8)or 0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(textValue),TextSize=tonumber(item.TextSize)or(sizePreset=="large" and 16 or sizePreset=="small" and 14 or 15),FontFace=Fonts.Regular,TextColor3=resolveColor(item.Color)or Theme.Muted,RichText=richText,TextWrapped=true,TextTruncate=Enum.TextTruncate.None,TextYAlignment=Enum.TextYAlignment.Top,Parent=row,})local rowLabel=row:FindFirstChildWhichIsA("TextLabel")if opts.IconBox==true and rowLabel then
+local externalIcons={}local function isExternalIcon(child)return child:IsA("ImageLabel")or child:IsA("ImageButton")or(child:IsA("Frame")and child:FindFirstChildWhichIsA("ViewportFrame",true)~=nil)end
+local function removeExternalBox(child)local entry=externalIcons[child]if not entry then
+return
+end
+externalIcons[child]=nil
+if entry.Box.Parent then
+entry.Box:Destroy()end
+for _,connection in ipairs(entry.Connections)do
+connection:Disconnect()end
+local pad=entry.Padding
+if pad and pad.Parent==rowLabel then
+local left=pad.PaddingLeft
+pad.PaddingLeft=UDim.new(left.Scale,math.max(0,left.Offset-8))if entry.CreatedPadding and pad.PaddingLeft.Offset==0 then
+pad:Destroy()end
+end
+end
+local function addExternalBox(child)if not opts.IconBox or not child.Parent or externalIcons[child]or not isExternalIcon(child)then
+return
+end
+local box=create("Frame",{Name="ParagraphExternalIconBox",AnchorPoint=child.AnchorPoint,BackgroundColor3=Theme.Surface,BorderSizePixel=0,ZIndex=math.max(row.ZIndex,child.ZIndex-1),Parent=row,})corner(box,UDim.new(0,6))stroke(box,Theme.Stroke,0.18)local paddingObject=rowLabel:FindFirstChildOfClass("UIPadding")local createdPadding=paddingObject==nil
+if not paddingObject then
+paddingObject=Instance.new("UIPadding")paddingObject.Parent=rowLabel
+end
+paddingObject.PaddingLeft=UDim.new(paddingObject.PaddingLeft.Scale,paddingObject.PaddingLeft.Offset+8)local entry={Box=box,Padding=paddingObject,CreatedPadding=createdPadding,Connections={},}externalIcons[child]=entry
+local function updateBox()if child.Parent~=row or not box.Parent then
+return
+end
+local anchor=child.AnchorPoint
+box.AnchorPoint=anchor
+box.Position=UDim2.new(child.Position.X.Scale,child.Position.X.Offset-4+8*anchor.X,child.Position.Y.Scale,child.Position.Y.Offset-4+8*anchor.Y)box.Size=UDim2.new(child.Size.X.Scale,child.Size.X.Offset+8,child.Size.Y.Scale,child.Size.Y.Offset+8)end
+updateBox()table.insert(entry.Connections,child:GetPropertyChangedSignal("Position"):Connect(updateBox))table.insert(entry.Connections,child:GetPropertyChangedSignal("Size"):Connect(updateBox))end
+row.ChildRemoved:Connect(removeExternalBox)row.ChildAdded:Connect(function(child)task.defer(addExternalBox,child)end)for _,child in ipairs(row:GetChildren())do
+task.defer(addExternalBox,child)end
+end
+table.insert(itemRows,row)end
 end
 end
 local handle
