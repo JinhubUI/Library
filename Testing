@@ -1,5 +1,15 @@
---1
+--2
+
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local TextService=game:GetService("TextService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
+local RUNTIME_LICENSE_LABEL_KEY="__JinHubLicenseLabel"
+local function getRuntimeLicenseLabel()local environment=_G
+pcall(function()if type(getgenv)=="function" then
+environment=getgenv()end
+end)if type(environment)~="table" then
+return nil
+end
+local value=environment[RUNTIME_LICENSE_LABEL_KEY]return type(value)=="string" and value~="" and value or nil
+end
 local Library={}Library.Flags={}Library.Windows={}local applyLocked
 local WINDOW_REGISTRY_KEY="__JinHub_UI_WindowRegistry"
 local function getPersistentWindowRegistry()local environment=_G
@@ -39,6 +49,7 @@ end
 local lockable=kind=="Toggle" or kind=="Dropdown" or kind=="Input"
 or kind=="Slider" or kind=="Button" or kind=="ButtonPair"
 or kind=="CategoryPicker" or kind=="Paragraph" or kind=="ParagraphInput"
+or kind=="DataTable"
 if opts.Locked==true and lockable and frame and applyLocked then
 applyLocked(frame,window,opts.LockedTitle)end
 local sectionOwner=tab and tab._sectionOwner
@@ -602,7 +613,7 @@ end
 handle.SelectPage=selectPage
 handle.SelectTab=selectPage
 function handle:CreatePage(pageOptions)pageOptions=normalize(pageOptions,{Title="Name"})local index=#pages+1
-local pageName=tostring(pageOptions.Name or pageOptions.Title or("Page "..index))local page=create("ScrollingFrame",{Name=pageName,Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=2,ScrollBarImageColor3=Theme.Accent,ScrollBarImageTransparency=0.5,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Visible=false,Parent=pageHost,})local contentInset=self.Window.NewElements and 15 or 24
+local pageName=tostring(pageOptions.Name or pageOptions.Title or("Page "..index))local page=create("ScrollingFrame",{Name=pageName,Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollBarImageColor3=Theme.Accent,ScrollBarImageTransparency=1,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Visible=false,Parent=pageHost,})local contentInset=1.5
 padding(page,contentInset,contentInset,2,24)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Window.NewElements and 2 or 8),Parent=page,})local tabPage=setmetatable({Name=pageName,Window=self.Window,List=page,_order=0,_page=page,_rootTab=rootTab,_subTabs=handle,_subTabIndex=index,},Tab)table.insert(pages,tabPage)local button=create("TextButton",{Size=UDim2.fromOffset(0,32),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=Theme.Surface2,BackgroundTransparency=1,Text="",AutoButtonColor=false,LayoutOrder=index,Parent=strip,})corner(button,UDim.new(0,7))local buttonStroke=stroke(button,Theme.Stroke,1)padding(button,12,12)local iconImage
 if pageOptions.Icon then
 iconImage=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,0,0.5,0),Size=UDim2.fromOffset(15,15),BackgroundTransparency=1,ImageColor3=Theme.Muted,ScaleType=Enum.ScaleType.Fit,Parent=button,})applyIcon(iconImage,pageOptions.Icon)create("UIGradient",{Name="JinHubSubTabIconGradient",Color=JINHUB_ACCENT_GRADIENT,Rotation=45,Enabled=false,Parent=iconImage,})end
@@ -649,7 +660,39 @@ function HStack:VStack()local index=#self.Columns+1
 local column=create("ScrollingFrame",{Name="VStack"..index,Size=UDim2.new(1/index,-8*(index-1)/index,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollBarImageTransparency=1,ScrollingDirection=Enum.ScrollingDirection.Y,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Active=true,LayoutOrder=index,Parent=self.Frame,})local layout=create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,self.Tab.Window.NewElements and 0 or 2),Parent=column,})table.insert(self.Columns,column)table.insert(self.ColumnLayouts,layout)local count=#self.Columns
 for _,existing in ipairs(self.Columns)do
 existing.Size=UDim2.new(1/count,-8*(count-1)/count,1,0)end
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()self:_updateHeight()end)self.Tab.List:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()self:_updateHeight()end)self:_updateHeight()return setmetatable({Name=self.Tab.Name,Window=self.Tab.Window,List=column,_order=0,_hstack=self,_sectionOwner=self.SectionOwner,_rootTab=self.RootTab,_flatElements=self.FlatElements,_boxBorderElements=self.BoxBorderElements,_compactElements=true,},Tab)end
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()self:_updateHeight()end)self.Tab.List:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()self:_updateHeight()end)if self.Tab._subTabs and self.Tab.List:IsA("ScrollingFrame")and not self._subtabScrollConnection then
+local parentPage=self.Tab.List
+local parentScrollEnabled=parentPage.ScrollingEnabled
+local function updateParentScroll()if not parentPage.Parent then
+return
+end
+local pointer=pointerPosition()local overStack=false
+for _,stackColumn in ipairs(self.Columns)do
+local position=stackColumn.AbsolutePosition
+local size=stackColumn.AbsoluteSize
+if pointer.X>=position.X and pointer.X<=position.X+size.X
+and pointer.Y>=position.Y and pointer.Y<=position.Y+size.Y then
+overStack=true
+break
+end
+end
+if overStack then
+parentPage.ScrollingEnabled=false
+else
+parentPage.ScrollingEnabled=parentScrollEnabled
+end
+end
+self._subtabScrollConnection=UserInputService.InputChanged:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseMovement
+or input.UserInputType==Enum.UserInputType.MouseWheel then
+updateParentScroll()end
+end)self.Frame.Destroying:Connect(function()if self._subtabScrollConnection then
+self._subtabScrollConnection:Disconnect()self._subtabScrollConnection=nil
+end
+if parentPage.Parent then
+parentPage.ScrollingEnabled=parentScrollEnabled
+end
+end)end
+self:_updateHeight()return setmetatable({Name=self.Tab.Name,Window=self.Tab.Window,List=column,_order=0,_hstack=self,_sectionOwner=self.SectionOwner,_rootTab=self.RootTab,_flatElements=self.FlatElements,_boxBorderElements=self.BoxBorderElements,_compactElements=true,},Tab)end
 function Tab:Section(text)if type(text)=="table" then
 local opts=normalize(text,{Name="Title",Boxborder="BoxBorder"})local titleText=opts.Title or opts.Name or "Section"
 local opened=opts.Opened==true
@@ -976,6 +1019,108 @@ end
 handle.ParagraphFrame=handle
 return element
 end
+function Tab:DataTable(opts)opts=normalize(opts,{Title="Name",Description="Desc"})local compact=self._compactElements==true
+local rowHeight=math.clamp(tonumber(opts.RowHeight)or 29,24,48)local maxVisible=math.clamp(math.floor(tonumber(opts.MaxVisibleRows)or 8),1,50)local searchEnabled=opts.Search~=false
+local columns={}local weightTotal=0
+for index,value in ipairs(type(opts.Columns)=="table" and opts.Columns or{})do
+local column=type(value)=="table" and value or{Name=tostring(value)}local weight=math.max(tonumber(column.Width)or 1,0.01)columns[index]={Name=tostring(column.Name or column.Title or column.Key or("Column "..index)),Key=column.Key or column.Name or column.Title or index,Width=weight,Color=column.Color,TextSize=tonumber(column.TextSize),Align=column.Align,}weightTotal+=weight
+end
+if #columns==0 then
+columns={{Name="Value",Key=1,Width=1}}weightTotal=1
+end
+for _,column in ipairs(columns)do
+column.Width/=weightTotal
+end
+local frame=card(self,"Frame",0,opts)frame.AutomaticSize=Enum.AutomaticSize.Y
+frame.ClipsDescendants=true
+local horizontalInset=compact and 4 or 8
+padding(frame,horizontalInset,horizontalInset,compact and 8 or 10,compact and 8 or 10)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,compact and 5 or 7),Parent=frame,})local order=0
+local function nextOrder()order+=1
+return order
+end
+if opts.Name and tostring(opts.Name)~="" then
+label({Name="DataTableTitle",Size=UDim2.new(1,0,0,18),Text=tostring(opts.Name),TextSize=16,FontFace=Fonts.SemiBold,LayoutOrder=nextOrder(),Parent=frame,})end
+if opts.Desc and tostring(opts.Desc)~="" then
+label({Name="DataTableDescription",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Text=tostring(opts.Desc),TextSize=13,FontFace=Fonts.Regular,TextColor3=Theme.Muted,TextWrapped=true,LayoutOrder=nextOrder(),Parent=frame,})end
+local searchBox,searchInput
+if searchEnabled then
+searchBox=create("Frame",{Name="DataTableSearch",Size=UDim2.new(1,0,0,30),BackgroundColor3=Theme.Surface,BorderSizePixel=0,LayoutOrder=nextOrder(),Parent=frame,})corner(searchBox,UDim.new(0,7))stroke(searchBox,Theme.Stroke,0.18)local searchIcon=create("ImageLabel",{Position=UDim2.fromOffset(9,8),Size=UDim2.fromOffset(14,14),BackgroundTransparency=1,ImageColor3=Theme.Muted,ScaleType=Enum.ScaleType.Fit,Parent=searchBox,})applyIcon(searchIcon,"search")searchInput=create("TextBox",{Position=UDim2.fromOffset(30,0),Size=UDim2.new(1,-38,1,0),BackgroundTransparency=1,Text=tostring(opts.SearchText or ""),PlaceholderText=tostring(opts.SearchPlaceholder or "Search"),PlaceholderColor3=Theme.Muted,TextColor3=Theme.Text,TextSize=14,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,TextTruncate=Enum.TextTruncate.AtEnd,Parent=searchBox,})end
+local tableBody=create("Frame",{Name="DataTableBody",Size=UDim2.new(1,0,0,23+rowHeight),BackgroundColor3=Theme.Surface,BackgroundTransparency=0,BorderSizePixel=0,ClipsDescendants=true,LayoutOrder=nextOrder(),Parent=frame,})corner(tableBody,UDim.new(0,7))stroke(tableBody,Theme.Stroke,0.25)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,0),Parent=tableBody,})local headerColor=Theme.Surface2:Lerp(Theme.Surface3,0.6)local header=create("Frame",{Name="DataTableHeader",Size=UDim2.new(1,0,0,23),BackgroundColor3=headerColor,BorderSizePixel=0,LayoutOrder=1,Parent=tableBody,})local headerRadius=8
+corner(header,UDim.new(0,headerRadius))for _,isRight in ipairs({false,true})do
+create("Frame",{Name=isRight and "DataTableHeaderBottomRight" or "DataTableHeaderBottomLeft",AnchorPoint=isRight and Vector2.new(1,0)or Vector2.zero,Position=isRight and UDim2.new(1,0,1,-headerRadius)or UDim2.new(0,0,1,-headerRadius),Size=UDim2.fromOffset(headerRadius,headerRadius),BackgroundColor3=headerColor,BorderSizePixel=0,Parent=header,})end
+local function columnLeft(index)local left=0
+for columnIndex=1,index-1 do
+left+=columns[columnIndex].Width
+end
+return left
+end
+local function makeCell(parent,column,index,text,color,layoutOrder)local align=tostring(column.Align or "Left"):lower()local textX=align=="right" and Enum.TextXAlignment.Right
+or align=="center" and Enum.TextXAlignment.Center
+or Enum.TextXAlignment.Left
+return label({Position=UDim2.new(columnLeft(index),7,0,0),Size=UDim2.new(column.Width,-14,1,0),Text=text,TextSize=column.TextSize or 13,FontFace=Fonts.Medium,TextColor3=color,TextXAlignment=textX,TextTruncate=Enum.TextTruncate.AtEnd,LayoutOrder=layoutOrder,Parent=parent,})end
+for index,column in ipairs(columns)do
+makeCell(header,column,index,string.upper(column.Name),Theme.Muted,index)end
+local list=create("ScrollingFrame",{Name="DataTableRows",Size=UDim2.new(1,0,0,rowHeight),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=Theme.Accent,ScrollBarImageTransparency=0.4,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollingEnabled=true,Active=true,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),LayoutOrder=2,Parent=tableBody,})create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,1),Parent=list,})local handle={Rows=type(opts.Rows)=="table" and table.clone(opts.Rows)or{},SearchText=tostring(opts.SearchText or ""),Locked=opts.Locked==true,}local renderedRows={}local function cellValue(row,column,index)local raw=type(row)=="table" and(row[column.Key]~=nil and row[column.Key]or row[index])or row
+local cellColor
+if type(raw)=="table" then
+cellColor=raw.Color
+raw=raw.Text~=nil and raw.Text or raw.Value
+end
+if cellColor==nil and type(row)=="table" and type(row.Colors)=="table" then
+cellColor=row.Colors[column.Key]or row.Colors[index]end
+cellColor=cellColor or column.Color
+if type(cellColor)=="function" then
+local ok,result=pcall(cellColor,raw,row,index)cellColor=ok and result or nil
+end
+if typeof(cellColor)~="Color3" then
+cellColor=Theme.Text
+end
+return tostring(raw==nil and "" or raw),cellColor
+end
+local function rowMatches(row,search)if search=="" then
+return true
+end
+for index,column in ipairs(columns)do
+local value=cellValue(row,column,index)if string.find(string.lower(value),search,1,true)then
+return true
+end
+end
+return false
+end
+local renderRows
+renderRows=function()for _,row in ipairs(renderedRows)do
+row:Destroy()end
+table.clear(renderedRows)local search=string.lower(handle.SearchText)local visibleRows={}for _,row in ipairs(handle.Rows)do
+if rowMatches(row,search)then
+table.insert(visibleRows,row)end
+end
+local displayCount=math.max(#visibleRows,1)local visibleCount=math.min(displayCount,maxVisible)list.Size=UDim2.new(1,0,0,visibleCount*rowHeight+math.max(visibleCount-1,0))tableBody.Size=UDim2.new(1,0,0,23+list.Size.Y.Offset)if #visibleRows==0 then
+local emptyRow=create("Frame",{Name="DataTableEmptyRow",Size=UDim2.new(1,0,0,rowHeight),BackgroundColor3=Theme.Surface,BorderSizePixel=0,LayoutOrder=1,Parent=list,})makeCell(emptyRow,{Width=1},1,handle.SearchText=="" and "No rows" or "No matching rows",Theme.Muted,1)table.insert(renderedRows,emptyRow)else
+for rowIndex,rowData in ipairs(visibleRows)do
+local rowFrame=create("Frame",{Name="DataTableRow",Size=UDim2.new(1,-4,0,rowHeight),BackgroundColor3=rowIndex%2==1 and Theme.Surface or Theme.Surface2,BorderSizePixel=0,LayoutOrder=rowIndex,Parent=list,})for columnIndex,column in ipairs(columns)do
+local value,color=cellValue(rowData,column,columnIndex)makeCell(rowFrame,column,columnIndex,value,color,columnIndex)end
+table.insert(renderedRows,rowFrame)end
+end
+list.CanvasPosition=Vector2.zero
+end
+if searchInput then
+searchInput:GetPropertyChangedSignal("Text"):Connect(function()handle.SearchText=searchInput.Text
+renderRows()end)end
+handle.SetRows=function(_,rows)handle.Rows=type(rows)=="table" and table.clone(rows)or{}opts.Rows=handle.Rows
+renderRows()return handle
+end
+handle.GetRows=function()return table.clone(handle.Rows)end
+handle.SetSearch=function(_,value)handle.SearchText=tostring(value or "")if searchInput then
+searchInput.Text=handle.SearchText
+else
+renderRows()end
+return handle
+end
+handle.GetSearch=function()return handle.SearchText
+end
+renderRows()finishElement(self,opts,handle,frame,"DataTable")return handle
+end
+Tab.CreateDataTable=Tab.DataTable
 function Tab:ParagraphInput(opts)opts=normalize(opts,{Title="Name",Description="Desc"})local compact=self._compactElements==true
 local horizontalPadding=compact and 10 or 14
 local verticalPadding=11
@@ -2474,8 +2619,13 @@ local root=create("Frame",{Name="Window",AnchorPoint=Vector2.new(0.5,0.5),Positi
 local scale=create("UIScale",{Parent=root})self.Scale=scale
 local shadow=create("ImageLabel",{Position=UDim2.fromOffset(-25,-25),Size=UDim2.new(1,50,1,50),BackgroundTransparency=1,Image=Assets.Shadow,ImageColor3=Color3.new(0,0,0),ImageTransparency=0.6,ScaleType=Enum.ScaleType.Slice,SliceCenter=Rect.new(49,49,450,450),Parent=root,})self.Shadow=shadow
 local body=create("CanvasGroup",{Name="Body",Size=UDim2.fromScale(1,1),BackgroundColor3=Theme.Background,BorderSizePixel=0,Parent=root,})self.Body=body
-corner(body,UDim.new(0,10))self.BodyStroke=stroke(body,Theme.Stroke)edgeHighlight(body)glow(body,UDim2.fromOffset(500,180),UDim2.new(0.5,0,1,8),0.86,270)glow(body,UDim2.fromOffset(130,60),UDim2.new(0,-10,1,-10),0.75,90)glow(body,UDim2.fromOffset(520,240),UDim2.new(1,-14,0,10),0.92,90)local sidebar=create("Frame",{Name="Sidebar",Size=UDim2.new(0,SIDEBAR_WIDTH,1,0),BackgroundTransparency=1,Parent=body,})create("Frame",{Position=UDim2.new(0,SIDEBAR_WIDTH,0,28),Size=UDim2.new(0,1,1,-28),BackgroundColor3=Theme.Stroke,BorderSizePixel=0,Parent=body,})local header=create("Frame",{Name="Header",Size=UDim2.new(1,0,0,HEADER_HEIGHT),BackgroundTransparency=1,Parent=sidebar,})local logo=create("ImageLabel",{Position=UDim2.fromOffset(22,27),Size=UDim2.fromOffset(30,28),BackgroundTransparency=1,Image="",ImageColor3=Theme.Accent,ScaleType=Enum.ScaleType.Fit,Parent=header,})applyIcon(logo,opts.Icon or Assets.Logo)label({Position=UDim2.fromOffset(60,25),Size=UDim2.new(1,-70,0,20),Text=opts.Title or "JinHub",TextSize=21,Parent=header,})label({Position=UDim2.fromOffset(60,45),Size=UDim2.new(1,-70,0,14),Text=opts.Subtitle or "",TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,Parent=header,})local tabList=create("ScrollingFrame",{Name="Tabs",Position=UDim2.fromOffset(0,HEADER_HEIGHT+8),Size=UDim2.new(1,0,1,-(HEADER_HEIGHT+8+36)),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Parent=sidebar,})self.TabList=tabList
-padding(tabList,16,16,4,4)create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,4),Parent=tabList,})local indicator=create("Frame",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.fromOffset(6,0),Size=UDim2.fromOffset(3,18),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=2,Parent=sidebar,})corner(indicator,UDim.new(1,0))self.Indicator=indicator
+corner(body,UDim.new(0,10))self.BodyStroke=stroke(body,Theme.Stroke)edgeHighlight(body)glow(body,UDim2.fromOffset(500,180),UDim2.new(0.5,0,1,8),0.86,270)glow(body,UDim2.fromOffset(130,60),UDim2.new(0,-10,1,-10),0.75,90)glow(body,UDim2.fromOffset(520,240),UDim2.new(1,-14,0,10),0.92,90)local sidebar=create("Frame",{Name="Sidebar",Size=UDim2.new(0,SIDEBAR_WIDTH,1,0),BackgroundTransparency=1,Parent=body,})create("Frame",{Position=UDim2.new(0,SIDEBAR_WIDTH,0,28),Size=UDim2.new(0,1,1,-28),BackgroundColor3=Theme.Stroke,BorderSizePixel=0,Parent=body,})local header=create("Frame",{Name="Header",Size=UDim2.new(1,0,0,HEADER_HEIGHT),BackgroundTransparency=1,Parent=sidebar,})local logo=create("ImageLabel",{Position=UDim2.fromOffset(22,27),Size=UDim2.fromOffset(30,28),BackgroundTransparency=1,Image="",ImageColor3=Theme.Accent,ScaleType=Enum.ScaleType.Fit,Parent=header,})applyIcon(logo,opts.Icon or Assets.Logo)label({Position=UDim2.fromOffset(60,25),Size=UDim2.new(1,-70,0,20),Text=opts.Title or "JinHub",TextSize=21,Parent=header,})label({Position=UDim2.fromOffset(60,45),Size=UDim2.new(1,-70,0,14),Text=opts.Subtitle or "",TextSize=16,FontFace=Fonts.Regular,TextColor3=Theme.Muted,Parent=header,})local tabList=create("ScrollingFrame",{Name="Tabs",Position=UDim2.fromOffset(0,HEADER_HEIGHT+8),Size=UDim2.new(1,0,1,-(HEADER_HEIGHT+8+52)),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(),Parent=sidebar,})self.TabList=tabList
+padding(tabList,16,16,4,4)local tabLayout=create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,4),Parent=tabList,})local function createTabScrollArrow(iconName,anchorPoint,position,direction)local arrow=create("ImageButton",{AnchorPoint=anchorPoint,Position=position,Size=UDim2.fromOffset(30,16),BackgroundColor3=Theme.Surface2,BackgroundTransparency=0.08,BorderSizePixel=0,AutoButtonColor=false,ImageColor3=Theme.Muted,ScaleType=Enum.ScaleType.Fit,Visible=false,ZIndex=7,Parent=sidebar,})corner(arrow,UDim.new(0,7))stroke(arrow,Theme.Stroke,0.25)applyIcon(arrow,iconName)arrow.Activated:Connect(function()local maxY=math.max(0,tabList.AbsoluteCanvasSize.Y-tabList.AbsoluteWindowSize.Y)local step=math.max(48,tabList.AbsoluteWindowSize.Y*0.65)tabList.CanvasPosition=Vector2.new(0,math.clamp(tabList.CanvasPosition.Y+direction*step,0,maxY))end)return arrow
+end
+local tabScrollUp=createTabScrollArrow("chevron-up",Vector2.new(0.5,0),UDim2.new(0.5,0,0,HEADER_HEIGHT+10),-1)local tabScrollDown=createTabScrollArrow("chevron-down",Vector2.new(0.5,1),UDim2.new(0.5,0,1,-(52+4)),1)local function updateTabScrollArrows()local maxY=math.max(0,tabList.AbsoluteCanvasSize.Y-tabList.AbsoluteWindowSize.Y)tabScrollUp.Visible=maxY>1 and tabList.CanvasPosition.Y>1
+tabScrollDown.Visible=maxY>1 and tabList.CanvasPosition.Y<maxY-1
+end
+tabList:GetPropertyChangedSignal("CanvasPosition"):Connect(updateTabScrollArrows)tabList:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(updateTabScrollArrows)tabList:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(updateTabScrollArrows)tabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateTabScrollArrows)task.defer(updateTabScrollArrows)local indicator=create("Frame",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.fromOffset(6,0),Size=UDim2.fromOffset(3,18),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=2,Parent=sidebar,})corner(indicator,UDim.new(1,0))self.Indicator=indicator
 local lastCanvasY=tabList.CanvasPosition.Y
 table.insert(self._frameSteps,function()local canvasY=tabList.CanvasPosition.Y
 if canvasY==lastCanvasY or not self.CurrentTab or not self._introDone then
@@ -2486,11 +2636,31 @@ local targetY=self:_indicatorY(self.CurrentTab)local top=tabList.Position.Y.Offs
 local bottom=top+tabList.AbsoluteSize.Y/self.Scale.Scale
 indicator.Visible=targetY>top and targetY<bottom
 indicator.Position=UDim2.fromOffset(6,targetY)end)local statusBar=create("Frame",{Name="StatusBar",Position=UDim2.new(0,SIDEBAR_WIDTH+1,1,-28),Size=UDim2.new(1,-(SIDEBAR_WIDTH+1),0,28),BackgroundColor3=Theme.Background,BackgroundTransparency=0.45,BorderSizePixel=0,ZIndex=5,Parent=body,})create("Frame",{Name="StatusBarDivider",Size=UDim2.new(1,0,0,1),BackgroundColor3=Theme.Stroke,BorderSizePixel=0,ZIndex=5,Parent=statusBar,})self.StatusBar=statusBar
-local gameNameLabel=label({AnchorPoint=Vector2.new(0.5,0),Size=UDim2.fromScale(1,1),Text="Loading...",TextSize=16,TextColor3=Theme.Muted,TextXAlignment=Enum.TextXAlignment.Center,TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=6,Parent=statusBar,})self.GameNameLabel=gameNameLabel
-self._placeGameNameLabel=function(tagWidth)local reserve=(tagWidth or 0)+((tagWidth or 0)>0 and 20 or 0)gameNameLabel.Position=UDim2.new(0.5,-reserve/2,0,0)gameNameLabel.Size=UDim2.new(1,-reserve,1,0)end
-task.spawn(function()gameNameLabel.Text=detectGameName()end)local footer=create("Frame",{Position=UDim2.new(0,22,1,-36),Size=UDim2.new(1,-44,0,22),BackgroundTransparency=1,ZIndex=6,Parent=sidebar,})local keyChip=create("Frame",{Size=UDim2.fromOffset(0,22),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=Theme.Surface,BorderSizePixel=0,ZIndex=6,Parent=footer,})corner(keyChip,UDim.new(0,5))stroke(keyChip)padding(keyChip,7,7)local keyChipLabel=label({Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Text=keyName(keybind),TextSize=12,TextColor3=Theme.Muted,TextTruncate=Enum.TextTruncate.None,ZIndex=6,Parent=keyChip,})self._keyChipLabel=keyChipLabel
-local hintLabel=label({Size=UDim2.new(1,0,1,0),Text=TOUCH and "or tap the pill" or "to hide",TextSize=13,FontFace=Fonts.Regular,TextColor3=Theme.Muted,ZIndex=6,Parent=footer,})local function placeHint()hintLabel.Position=UDim2.fromOffset(keyChip.AbsoluteSize.X/self.Scale.Scale+8,0)end
-keyChip:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeHint)task.defer(placeHint)local content=create("Frame",{Name="Content",Position=UDim2.fromOffset(SIDEBAR_WIDTH+1,0),Size=UDim2.new(1,-(SIDEBAR_WIDTH+1),1,-28),BackgroundTransparency=1,ClipsDescendants=true,Parent=body,})self.Content=content
+local gameNameLabel=label({AnchorPoint=Vector2.new(0.5,0),Position=UDim2.new(0.5,0,0,0),Size=UDim2.fromScale(1,1),Text="Loading...",TextSize=16,TextColor3=Theme.Muted,TextXAlignment=Enum.TextXAlignment.Center,TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=6,Parent=statusBar,})self.GameNameLabel=gameNameLabel
+self._placeGameNameLabel=function(tagWidth)local reserve=(tagWidth or 0)+((tagWidth or 0)>0 and 20 or 0)reserve=math.min(reserve,math.max(0,statusBar.AbsoluteSize.X*0.5-20))gameNameLabel.Position=UDim2.new(0.5,0,0,0)gameNameLabel.Size=UDim2.new(1,-reserve*2,1,0)end
+task.spawn(function()gameNameLabel.Text=detectGameName()end)local footer=create("Frame",{Position=UDim2.new(0,14,1,-52),Size=UDim2.new(1,-44,0,40),BackgroundTransparency=1,ZIndex=6,Parent=sidebar,})local avatarFrame=create("Frame",{Name="PlayerAvatarFrame",Size=UDim2.fromOffset(38,40),BackgroundColor3=Theme.Surface,BorderSizePixel=0,ZIndex=6,Parent=footer,})corner(avatarFrame,UDim.new(0,7))stroke(avatarFrame,Theme.Stroke,0.15)local avatarImage=create("ImageLabel",{Position=UDim2.fromOffset(2,3),Size=UDim2.fromOffset(34,34),BackgroundTransparency=1,Image="",ScaleType=Enum.ScaleType.Crop,ZIndex=7,Parent=avatarFrame,})corner(avatarImage,UDim.new(0,5))local licenseText=getRuntimeLicenseLabel()local normalizedLicense=licenseText and string.lower(licenseText)or ""
+local licenseIcons={{Name="starter",Image="rbxassetid://73908217710137"},{Name="farmer",Image="rbxassetid://82107131129765"},{Name="premium",Image="rbxassetid://71075436808114"},{Name="free",Image="rbxassetid://131582129510865"},{Name="pro",Image="rbxassetid://103998646816158"},}local licenseIconImage
+for _,entry in ipairs(licenseIcons)do
+if string.find(normalizedLicense,entry.Name,1,true)then
+licenseIconImage=entry.Image
+break
+end
+end
+if licenseIconImage then
+create("ImageLabel",{Name="PlayerLicenseIcon",AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,46,0.5,0),Size=UDim2.fromOffset(16,16),BackgroundTransparency=1,Image=licenseIconImage,ImageColor3=Color3.new(1,1,1),ScaleType=Enum.ScaleType.Fit,ZIndex=7,Parent=footer,})end
+local licenseLabel=label({Name="PlayerLicenseLabel",Position=UDim2.fromOffset(licenseIconImage and 67 or 46,0),Size=UDim2.new(1,-(licenseIconImage and 67 or 46),1,0),Text=licenseText or "",TextSize=12,FontFace=Fonts.Medium,TextColor3=Theme.Muted,TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Visible=licenseText~=nil,ZIndex=6,Parent=footer,})local licenseGradient
+if string.find(normalizedLicense,"premium",1,true)then
+licenseGradient=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,213,74)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,179,0)),})elseif string.find(normalizedLicense,"pro",1,true)then
+licenseGradient=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(59,168,255)),ColorSequenceKeypoint.new(1,Color3.fromRGB(37,99,235)),})elseif string.find(normalizedLicense,"farmer",1,true)then
+licenseGradient=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(34,197,94)),ColorSequenceKeypoint.new(1,Color3.fromRGB(22,163,74)),})elseif string.find(normalizedLicense,"starter",1,true)then
+licenseGradient=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,183,77)),ColorSequenceKeypoint.new(1,Color3.fromRGB(249,115,22)),})elseif string.find(normalizedLicense,"free",1,true)then
+licenseGradient=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,255,255)),ColorSequenceKeypoint.new(1,Color3.fromRGB(156,163,175)),})end
+if licenseGradient then
+create("UIGradient",{Color=licenseGradient,Rotation=0,Parent=licenseLabel,})end
+task.spawn(function()local ok,thumbnail=pcall(function()return Players:GetUserThumbnailAsync(LocalPlayer.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size100x100)end)if ok and avatarImage.Parent then
+avatarImage.Image=thumbnail
+end
+end)local content=create("Frame",{Name="Content",Position=UDim2.fromOffset(SIDEBAR_WIDTH+1,0),Size=UDim2.new(1,-(SIDEBAR_WIDTH+1),1,-28),BackgroundTransparency=1,ClipsDescendants=true,Parent=body,})self.Content=content
 self._outLayer=create("CanvasGroup",{Name="TransitionOut",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Visible=false,ZIndex=2,Parent=content,})self._inLayer=create("CanvasGroup",{Name="TransitionIn",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Visible=false,ZIndex=3,Parent=content,})local closeButton=create("TextButton",{AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-14,0,14),Size=UDim2.fromOffset(34,34),BackgroundColor3=Theme.Surface2,BackgroundTransparency=1,Text="×",TextColor3=Theme.Muted,TextSize=29,FontFace=Fonts.Bold,AutoButtonColor=false,ZIndex=5,Parent=content,})padding(closeButton,0,0,1,0)corner(closeButton,UDim.new(0,8))closeButton.MouseEnter:Connect(function()tween(closeButton,{BackgroundTransparency=0,TextColor3=Theme.Text},0.15)end)closeButton.MouseLeave:Connect(function()tween(closeButton,{BackgroundTransparency=1,TextColor3=Theme.Muted},0.2)end)closeButton.MouseButton1Click:Connect(function()self:Destroy()end)local function makeWindowControl(iconName,rightOffset)local control=create("TextButton",{AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-rightOffset,0,14),Size=UDim2.fromOffset(34,34),BackgroundColor3=Theme.Surface2,BackgroundTransparency=1,Text="",AutoButtonColor=false,ZIndex=5,Parent=content,})corner(control,UDim.new(0,8))local image=create("ImageLabel",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromOffset(16,16),BackgroundTransparency=1,ImageColor3=Theme.Muted,ScaleType=Enum.ScaleType.Fit,ZIndex=6,Parent=control,})applyIcon(image,iconName)control.MouseEnter:Connect(function()tween(control,{BackgroundTransparency=0},0.15)tween(image,{ImageColor3=Theme.Text},0.15)end)control.MouseLeave:Connect(function()tween(control,{BackgroundTransparency=1},0.2)tween(image,{ImageColor3=Theme.Muted},0.2)end)return control
 end
 local searchButton=makeWindowControl("search",88)local minimizeButton=makeWindowControl("minus",50)minimizeButton.MouseButton1Click:Connect(function()self:Toggle(false)end)local searchField=create("Frame",{AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,-88,0,14),Size=UDim2.fromOffset(34,34),BackgroundColor3=Theme.Surface,BackgroundTransparency=1,BorderSizePixel=0,Visible=false,ZIndex=6,Parent=content,})corner(searchField,UDim.new(0,8))local searchFieldStroke=stroke(searchField,Theme.Stroke,1)local searchIcon=create("ImageLabel",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,10,0.5,0),Size=UDim2.fromOffset(16,16),BackgroundTransparency=1,ImageColor3=Theme.Muted,ImageTransparency=1,ScaleType=Enum.ScaleType.Fit,ZIndex=7,Parent=searchField,})applyIcon(searchIcon,"search")local searchInput=create("TextBox",{Position=UDim2.fromOffset(34,0),Size=UDim2.new(1,-42,1,0),BackgroundTransparency=1,Text="",TextTransparency=1,PlaceholderText="Search tabs...",PlaceholderColor3=Theme.Muted,TextColor3=Theme.Text,TextSize=16,FontFace=Fonts.Regular,TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,ZIndex=7,Parent=searchField,})local function filterTabs(query)query=string.lower(query or "")local firstMatch
@@ -3320,7 +3490,7 @@ if self.KeepOnScreen then
 self:_clampToScreen()end
 end
 function Window:SetKeybind(keyCode)self.Keybind=keyCode
-self._keyChipLabel.Text=keyName(keyCode)end
+end
 function Window:Tag(opts)opts=normalize(opts,{})if self._statusTag then
 self._statusTag:Destroy()self._statusTag=nil
 end
