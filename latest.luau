@@ -1,6 +1,32 @@
+--1
 local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local GuiService=game:GetService("GuiService")local RunService=game:GetService("RunService")local HttpService=game:GetService("HttpService")local TextService=game:GetService("TextService")local Players=game:GetService("Players")local LocalPlayer=Players.LocalPlayer
 local RUNTIME_LICENSE_LABEL_KEY="__JinHubLicenseLabel"
-local function getRuntimeLicenseLabel()local environment=_G
+local RUNTIME_TICKET_KEY="__JinHubRuntimeTicket"
+local function authorizeRuntimeLibrary()if RunService:IsStudio()then
+return true
+end
+local environment=_G
+pcall(function()if type(getgenv)=="function" then
+environment=getgenv()end
+end)local ticket=type(environment)=="table" and environment[RUNTIME_TICKET_KEY]or nil
+if type(environment)=="table" then
+environment[RUNTIME_TICKET_KEY]=nil
+end
+local valid=false
+if type(ticket)=="string" and ticket~="" then
+local url="https://jinhub.my.id/api/runtime-auth/validate?ticket="..HttpService:UrlEncode(ticket).."&gameId="..HttpService:UrlEncode(tostring(game.GameId))local ok,response=pcall(function()return game:HttpGet(url)end)if not ok then
+ok,response=pcall(function()return HttpService:GetAsync(url)end)end
+if ok and type(response)=="string" then
+local decoded,body=pcall(function()return HttpService:JSONDecode(response)end)valid=decoded and type(body)=="table" and body.valid==true
+end
+end
+if valid then
+return true
+end
+pcall(function()if LocalPlayer then
+LocalPlayer:Kick("Please launch JinHub through the key system.")end
+end)error("JinHub runtime authorization failed",0)end
+authorizeRuntimeLibrary()local function getRuntimeLicenseLabel()local environment=_G
 pcall(function()if type(getgenv)=="function" then
 environment=getgenv()end
 end)if type(environment)~="table" then
